@@ -6,7 +6,9 @@ from pathlib import Path
 from jobtalk.config import Settings
 
 
-def transcribe(audio_path: str | Path, settings: Settings = Settings()) -> str:
+def transcribe(audio_path: str | Path, settings: Settings | None = None) -> str:
+    if settings is None:
+        settings = Settings()
     try:
         from faster_whisper import WhisperModel
     except ImportError as exc:

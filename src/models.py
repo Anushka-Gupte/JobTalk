@@ -32,7 +32,7 @@ class Job:
     items: list[LineItem] = field(default_factory=list)
 
     @classmethod
-    def from_dict(cls, data: dict) -> "Job":
+    def from_dict(cls, data: dict) -> Job:
         """Tolerant parser: small models return messy JSON, so never trust it."""
         items = []
         for raw in data.get("items") or []:
@@ -45,8 +45,11 @@ class Job:
                 qty=_num(raw.get("qty"), 1.0),
                 unit_price=_num(raw.get("unit_price")),
             ))
-        s = lambda k: str(data.get(k) or "").strip()  # noqa: E731
-        return cls(s("customer"), s("address"), s("job_summary"), s("notes"), items)
+
+        def _str_field(k: str) -> str:
+            return str(data.get(k) or "").strip()
+
+        return cls(_str_field("customer"), _str_field("address"), _str_field("job_summary"), _str_field("notes"), items)
 
 
 @dataclass

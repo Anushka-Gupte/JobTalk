@@ -1,7 +1,6 @@
 import json
 
 import pytest
-
 from jobtalk.extract import extract_job
 from jobtalk.models import Job
 

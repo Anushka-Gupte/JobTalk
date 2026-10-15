@@ -33,9 +33,11 @@ def ollama_chat(system: str, user: str, settings: Settings) -> str:
         return json.loads(resp.read())["message"]["content"]
 
 
-def extract_job(transcript: str, rates: dict, settings: Settings = Settings(),
+def extract_job(transcript: str, rates: dict, settings: Settings | None = None,
                 chat: ChatFn = ollama_chat) -> Job:
     """`chat` is injectable so tests (and other backends) don't need a live LLM."""
+    if settings is None:
+        settings = Settings()
     user = f"Price list: {json.dumps(rates)}\n\nTranscript:\n{transcript}"
     try:
         raw = chat(SYSTEM_PROMPT, user, settings)
