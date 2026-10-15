@@ -1,0 +1,29 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quote $quote_no</title>
+<style>
+  body{font:15px system-ui,sans-serif;max-width:720px;margin:40px auto;padding:0 20px;color:#222}
+  h1{margin:0}
+  table{width:100%;border-collapse:collapse;margin:24px 0}
+  th,td{padding:10px 6px;border-bottom:1px solid #ddd;text-align:left}
+  .n{text-align:right}
+  small{display:block;color:#888;text-transform:capitalize}
+  .warn{color:#b45309;background:#fef3c7;padding:2px 6px;border-radius:4px}
+  .totals{text-align:right}
+  .totals b{font-size:1.3em}
+  @media print{body{margin:0}}
+</style>
+<h1>$business</h1>
+<p>Quote #$quote_no &middot; $date</p>
+<p><b>For:</b> $customer<br>$address</p>
+<p><b>Job:</b> $summary</p>
+<table>
+  <tr><th>Item</th><th class="n">Qty</th><th class="n">Price</th><th class="n">Total</th></tr>
+  $rows
+</table>
+$warning
+<div class="totals">
+  Subtotal $subtotal<br>Tax ($tax_pct) $tax<br><b>Total $total</b>
+</div>
+<p>$notes</p>
