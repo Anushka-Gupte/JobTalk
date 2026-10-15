@@ -1,0 +1,38 @@
+{
+  "id": "hvac_03",
+  "trade": "hvac",
+  "transcript": "Job ticket for Greg Kowalski, 401 Chestnut Street. Upgraded the old mechanical dial thermostat to an Ecobee smart thermostat. The old bundle didn't have a C-wire, so we fished new eighteen five thermostat cable from the basement furnace board. Pulled fifteen feet... no, had to go around ducting, so make it twenty-five feet of 18/5 thermostat wire. Customer supplied their own Ecobee unit, so don't charge for the thermostat itself, just our standard thermostat installation service fee of seventy-five dollars from the rate sheet, plus an hour and a half labor.",
+  "rates": {
+    "labor_hourly": 95,
+    "items": {
+      "thermostat installation": 75,
+      "18/5 thermostat wire": 0.85
+    }
+  },
+  "expected": {
+    "customer": "Greg Kowalski",
+    "address": "401 Chestnut Street",
+    "job_summary": "Installed customer-provided smart thermostat and ran new C-wire",
+    "notes": "Customer supplied Ecobee; ran 25ft 18/5 wire from basement.",
+    "items": [
+      {
+        "description": "Smart thermostat installation service",
+        "kind": "labor",
+        "qty": 1.0,
+        "unit_price": 75.0
+      },
+      {
+        "description": "18/5 thermostat wire (feet)",
+        "kind": "material",
+        "qty": 25.0,
+        "unit_price": 0.85
+      },
+      {
+        "description": "Labor",
+        "kind": "labor",
+        "qty": 1.5,
+        "unit_price": 95.0
+      }
+    ]
+  }
+}

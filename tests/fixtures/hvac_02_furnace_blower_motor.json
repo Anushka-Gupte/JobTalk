@@ -1,0 +1,38 @@
+{
+  "id": "hvac_02",
+  "trade": "hvac",
+  "transcript": "Furnace repair for Elena Rostova at 219 Birch Hill Road. Furnace was overheating because the blower motor seized up. Replaced with a three-quarter horsepower ECM blower motor from our van stock, that's two hundred eighty dollars. Also replaced the worn fan belt for twenty-five dollars. We initially wrote down a diagnostic fee... actually wait, scratch the diagnostic fee, company policy waives it when customer approves the repair. Labor was two and a quarter hours total.",
+  "rates": {
+    "labor_hourly": 105,
+    "items": {
+      "blower motor": 280,
+      "fan belt": 25
+    }
+  },
+  "expected": {
+    "customer": "Elena Rostova",
+    "address": "219 Birch Hill Road",
+    "job_summary": "Replaced furnace blower motor and fan belt",
+    "notes": "Diagnostic fee waived with approved repair.",
+    "items": [
+      {
+        "description": "3/4 HP ECM blower motor",
+        "kind": "material",
+        "qty": 1.0,
+        "unit_price": 280.0
+      },
+      {
+        "description": "Fan belt",
+        "kind": "material",
+        "qty": 1.0,
+        "unit_price": 25.0
+      },
+      {
+        "description": "Labor",
+        "kind": "labor",
+        "qty": 2.25,
+        "unit_price": 105.0
+      }
+    ]
+  }
+}

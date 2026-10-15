@@ -1,0 +1,43 @@
+{
+  "id": "electrical_02",
+  "trade": "electrical",
+  "transcript": "Living room lighting upgrade for Marcus Vance at 1442 West End Court. Installed six 6-inch LED wafer lights across the ceiling. Added one Lutron smart dimmer switch that we supplied for sixty-five dollars. Labor took three hours... well actually three and a half hours because fishing wire through the old plaster joists was tricky. Need to bill fifty feet of 14/2 Romex cable, not in our standard rates.",
+  "rates": {
+    "labor_hourly": 105,
+    "items": {
+      "led wafer light": 22
+    }
+  },
+  "expected": {
+    "customer": "Marcus Vance",
+    "address": "1442 West End Court",
+    "job_summary": "Living room recessed LED lighting and dimmer install",
+    "notes": "Tricky wire fishing through old plaster ceiling.",
+    "items": [
+      {
+        "description": "6-inch LED wafer lights",
+        "kind": "material",
+        "qty": 6.0,
+        "unit_price": 22.0
+      },
+      {
+        "description": "Lutron smart dimmer switch",
+        "kind": "material",
+        "qty": 1.0,
+        "unit_price": 65.0
+      },
+      {
+        "description": "14/2 Romex wire (feet)",
+        "kind": "material",
+        "qty": 50.0,
+        "unit_price": null
+      },
+      {
+        "description": "Labor",
+        "kind": "labor",
+        "qty": 3.5,
+        "unit_price": 105.0
+      }
+    ]
+  }
+}

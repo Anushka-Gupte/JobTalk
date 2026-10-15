@@ -1,0 +1,45 @@
+{
+  "id": "hvac_01",
+  "trade": "hvac",
+  "transcript": "Summer AC tune-up call for Brian O'Connor over on 552 Clearwater Drive. Performed full AC tune-up service. The outside condenser fan was humming but not starting. Replaced the swollen dual run capacitor with a forty-five by five microfarad unit. Added two and a half pounds of R-410A refrigerant to get the subcooling into spec. Took one hour labor. All those items are in the price book.",
+  "rates": {
+    "labor_hourly": 100,
+    "items": {
+      "ac tune-up service": 89,
+      "dual run capacitor": 45,
+      "r-410a": 75
+    }
+  },
+  "expected": {
+    "customer": "Brian O'Connor",
+    "address": "552 Clearwater Drive",
+    "job_summary": "AC tune-up, capacitor replacement, and refrigerant recharge",
+    "notes": "Subcooling adjusted to manufacturer spec.",
+    "items": [
+      {
+        "description": "AC tune-up service",
+        "kind": "labor",
+        "qty": 1.0,
+        "unit_price": 89.0
+      },
+      {
+        "description": "45/5 microfarad dual run capacitor",
+        "kind": "material",
+        "qty": 1.0,
+        "unit_price": 45.0
+      },
+      {
+        "description": "R-410A refrigerant (lbs)",
+        "kind": "material",
+        "qty": 2.5,
+        "unit_price": 75.0
+      },
+      {
+        "description": "Labor",
+        "kind": "labor",
+        "qty": 1.0,
+        "unit_price": 100.0
+      }
+    ]
+  }
+}

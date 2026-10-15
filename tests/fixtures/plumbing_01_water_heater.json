@@ -1,0 +1,44 @@
+{
+  "id": "plumbing_01",
+  "trade": "plumbing",
+  "transcript": "Uh, okay, just wrapped up at Mrs. Higgins over at 742 Evergreen Terrace. We replaced her old leaking water heater with a forty gallon unit. Let's see, labor was... well I was there for two hours, no, make that two and a half hours with the cleanup and draining the tank. Put in one new brass shutoff valve, and uh, grabbed a pack of copper pipe fittings from the truck. The shutoff valve is on the price list, fittings are not.",
+  "rates": {
+    "labor_hourly": 95,
+    "items": {
+      "shutoff valve": 24,
+      "water heater": 720
+    }
+  },
+  "expected": {
+    "customer": "Mrs. Higgins",
+    "address": "742 Evergreen Terrace",
+    "job_summary": "Replaced 40-gallon water heater",
+    "notes": "Drained old tank and cleaned up.",
+    "items": [
+      {
+        "description": "40-gallon water heater",
+        "kind": "material",
+        "qty": 1.0,
+        "unit_price": 720.0
+      },
+      {
+        "description": "Labor",
+        "kind": "labor",
+        "qty": 2.5,
+        "unit_price": 95.0
+      },
+      {
+        "description": "Brass shutoff valve",
+        "kind": "material",
+        "qty": 1.0,
+        "unit_price": 24.0
+      },
+      {
+        "description": "Copper pipe fittings",
+        "kind": "material",
+        "qty": 1.0,
+        "unit_price": null
+      }
+    ]
+  }
+}

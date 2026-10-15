@@ -1,0 +1,38 @@
+{
+  "id": "plumbing_02",
+  "trade": "plumbing",
+  "transcript": "Hey this is for Tom Henderson at 88 Elm Boulevard. Cleared a blocked kitchen drain line using the snake. Um, ended up replacing the cracked p-trap underneath. Thought I'd need two PVC p-traps, wait, scratch that, only used one p-trap in the end. Snake service is standard on the sheet. Took me three quarters of an hour total for the labor. No extra parts.",
+  "rates": {
+    "labor_hourly": 90,
+    "items": {
+      "p-trap": 18,
+      "drain snake service": 65
+    }
+  },
+  "expected": {
+    "customer": "Tom Henderson",
+    "address": "88 Elm Boulevard",
+    "job_summary": "Cleared blocked kitchen drain and replaced p-trap",
+    "notes": "Used snake to clear main kitchen line.",
+    "items": [
+      {
+        "description": "Drain snake service",
+        "kind": "labor",
+        "qty": 1.0,
+        "unit_price": 65.0
+      },
+      {
+        "description": "PVC p-trap",
+        "kind": "material",
+        "qty": 1.0,
+        "unit_price": 18.0
+      },
+      {
+        "description": "Labor",
+        "kind": "labor",
+        "qty": 0.75,
+        "unit_price": 90.0
+      }
+    ]
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "id": "electrical_01",
+  "trade": "electrical",
+  "transcript": "Subpanel addition for Sarah Jenkins at 904 Sycamore Drive. Put in a one hundred amp subpanel in the workshop out back. Ran fifty feet of 2-2-2-4 aluminum wire. Installed four twenty-amp breakers... no wait, scratch that, make it five 20-amp breakers because we added the air compressor line. Put in one eight foot copper ground rod which isn't on our price sheet. Total labor time was four hours flat.",
+  "rates": {
+    "labor_hourly": 110,
+    "items": {
+      "subpanel 100a": 185,
+      "20-amp breaker": 12,
+      "aluminum wire": 3.5
+    }
+  },
+  "expected": {
+    "customer": "Sarah Jenkins",
+    "address": "904 Sycamore Drive",
+    "job_summary": "100A subpanel installation in workshop",
+    "notes": "Added dedicated air compressor line.",
+    "items": [
+      {
+        "description": "100-amp subpanel",
+        "kind": "material",
+        "qty": 1.0,
+        "unit_price": 185.0
+      },
+      {
+        "description": "2-2-2-4 aluminum wire (feet)",
+        "kind": "material",
+        "qty": 50.0,
+        "unit_price": 3.5
+      },
+      {
+        "description": "20-amp breaker",
+        "kind": "material",
+        "qty": 5.0,
+        "unit_price": 12.0
+      },
+      {
+        "description": "8-foot copper ground rod",
+        "kind": "material",
+        "qty": 1.0,
+        "unit_price": null
+      },
+      {
+        "description": "Labor",
+        "kind": "labor",
+        "qty": 4.0,
+        "unit_price": 110.0
+      }
+    ]
+  }
+}

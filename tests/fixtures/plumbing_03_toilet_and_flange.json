@@ -1,0 +1,44 @@
+{
+  "id": "plumbing_03",
+  "trade": "plumbing",
+  "transcript": "Quote for Dr. Angela Martinez, 310 Oak Ridge Lane. Master bathroom toilet was rocking and leaking at the base. Replaced the subfloor flange with a repair flange kit, put on two wax rings, stacked wax rings. Customer had us supply a Kohler toilet which cost two hundred twenty dollars. Took one hour and forty-five minutes of labor. All done and sealed.",
+  "rates": {
+    "labor_hourly": 85,
+    "items": {
+      "wax ring": 8,
+      "toilet flange repair": 35
+    }
+  },
+  "expected": {
+    "customer": "Dr. Angela Martinez",
+    "address": "310 Oak Ridge Lane",
+    "job_summary": "Replaced toilet flange, wax rings, and installed Kohler toilet",
+    "notes": "Master bathroom toilet leaking at base.",
+    "items": [
+      {
+        "description": "Kohler toilet",
+        "kind": "material",
+        "qty": 1.0,
+        "unit_price": 220.0
+      },
+      {
+        "description": "Toilet flange repair kit",
+        "kind": "material",
+        "qty": 1.0,
+        "unit_price": 35.0
+      },
+      {
+        "description": "Wax rings",
+        "kind": "material",
+        "qty": 2.0,
+        "unit_price": 8.0
+      },
+      {
+        "description": "Labor",
+        "kind": "labor",
+        "qty": 1.75,
+        "unit_price": 85.0
+      }
+    ]
+  }
+}

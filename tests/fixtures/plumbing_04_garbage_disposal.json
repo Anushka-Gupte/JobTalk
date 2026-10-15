@@ -1,0 +1,43 @@
+{
+  "id": "plumbing_04",
+  "trade": "plumbing",
+  "transcript": "Did a kitchen sink repair for Kevin Miller at 512 Maple Avenue. Swapped out his burnt out garbage disposal for a new InSinkErator Badger five disposal at one hundred forty bucks. Replaced two braided water supply hoses... actually wait, make that three braided hoses because the dishwasher line was fraying too. Used a tub of plumber's putty, not on the rate card. Total labor was an hour and a half.",
+  "rates": {
+    "labor_hourly": 90,
+    "items": {
+      "braided hose": 15
+    }
+  },
+  "expected": {
+    "customer": "Kevin Miller",
+    "address": "512 Maple Avenue",
+    "job_summary": "Replaced garbage disposal and supply hoses",
+    "notes": "Dishwasher line was fraying too.",
+    "items": [
+      {
+        "description": "InSinkErator Badger 5 disposal",
+        "kind": "material",
+        "qty": 1.0,
+        "unit_price": 140.0
+      },
+      {
+        "description": "Braided water supply hoses",
+        "kind": "material",
+        "qty": 3.0,
+        "unit_price": 15.0
+      },
+      {
+        "description": "Plumber's putty",
+        "kind": "material",
+        "qty": 1.0,
+        "unit_price": null
+      },
+      {
+        "description": "Labor",
+        "kind": "labor",
+        "qty": 1.5,
+        "unit_price": 90.0
+      }
+    ]
+  }
+}
