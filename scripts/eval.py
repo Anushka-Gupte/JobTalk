@@ -12,6 +12,7 @@ from pathlib import Path
 from jobtalk.config import Settings
 from jobtalk.extract import extract_job
 from jobtalk.models import Job, LineItem
+from jobtalk.pricing import apply_rates
 
 
 def _normalize_text(s: str) -> str:
@@ -58,6 +59,7 @@ def evaluate_fixture(
     errors: list[str] = []
     try:
         extracted_job = extract_job(transcript, rates, settings)
+        extracted_job = apply_rates(extracted_job, rates)
     except Exception as exc:  # noqa: BLE001
         duration_s = round(time.perf_counter() - t0, 3)
         return CaseResult(

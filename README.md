@@ -34,9 +34,16 @@ docs/          architecture and design decisions
 
 ## Development
 ```bash
-make test    # pytest
-make lint    # ruff
+make test    # pytest (runs offline unit tests)
+make lint    # ruff check src tests scripts
 ```
+
+### Evaluation & Model Benchmarks
+Run the automated accuracy benchmark on 10 realistic tradesperson fixtures:
+```bash
+python scripts/eval.py --model qwen2.5:3b --verbose
+```
+See [docs/model-comparison.md](docs/model-comparison.md) for full benchmarks and latency analysis.
 
 ## License
 MIT

@@ -7,7 +7,7 @@ test:
 	pytest
 
 lint:
-	ruff check src tests
+	ruff check src tests scripts
 
 demo:
 	python -m jobtalk --demo --business "Dave's Plumbing" --tax 0.08 --out output/quote.html
