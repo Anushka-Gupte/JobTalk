@@ -1,52 +1,64 @@
 # Model Comparison: On-Device LLMs for Voice-to-Quote Extraction
 
 ## Overview
-To provide a reliable, 100% offline experience for tradespeople without requiring a high-end cloud GPU or paid API key, JobTalk runs local LLMs via Ollama. 
+To provide a reliable, 100% offline experience for tradespeople without requiring a high-end cloud GPU or paid API key, JobTalk runs local LLMs via Ollama.
 
-We benchmarked model performance across **10 realistic tradesperson transcripts** covering plumbing, electrical, and HVAC tasks. The test set incorporates messy spoken speech: fillers ("uh", "um"), spontaneous self-corrections ("two hours, no, make that two and a half"), numbers spoken as words ("two and a half", "three quarters of an hour"), and unpriced items.
+We benchmarked model performance across **18 realistic tradesperson transcripts** covering plumbing, electrical, and HVAC tasks:
+- **Train split**: 10 fixtures (`tests/fixtures/`) used during prompt design.
+- **Holdout split**: 8 unseen fixtures (`tests/fixtures/holdout/`) written independently without inspecting the prompt.
+
+The test set incorporates messy spoken speech: fillers ("uh", "um"), spontaneous self-corrections ("two hours, no, make that two and a half"), numbers spoken as words ("two and a half", "three quarters of an hour"), and unpriced items.
 
 Testing was conducted using `scripts/eval.py` on standard CPU hardware with Ollama 0.40.4.
 
 ---
 
-## Benchmark Results
+## Benchmark Results Matrix
 
-| Metric | `qwen2.5:3b` (Default) | `mistral:latest` (7.2B) |
-| :--- | :--- | :--- |
-| **Parameters** | 3.1B | 7.2B |
-| **Disk Size** | 1.9 GB | 4.4 GB |
-| **RAM Footprint (Peak)** | ~3.2 GB | ~5.8 GB |
-| **Average Latency / Quote** | **44.02 s** | 167.22 s (3.8x slower) |
-| **Customer Accuracy** | **100.0%** | 40.0% (timeouts) |
-| **Address Accuracy** | **100.0%** | 40.0% (timeouts) |
-| **Item Recall** | **87.2%** (34/39 items) | 33.3% (13/39 items) |
-| **Item Precision** | 97.1% (34/35 items) | **100.0%** (13/13 items) |
-| **Item Kind Accuracy** | 97.1% | **100.0%** |
-| **Quantity Accuracy** | **91.2%** (31/34 items) | 84.6% (11/13 items) |
-| **Price Accuracy** | **88.2%** (30/34 items) | 84.6% (11/13 items) |
-| **Composite Accuracy** | **93.3%** | 56.5% |
+| Metric | `qwen2.5:1.5b` | `qwen2.5:3b` | `llama3.2:3b` | `mistral:latest` (7.2B, 600s timeout) | `mistral:latest` (180s timeout)* |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Parameters** | 1.5B | 3.1B | 3.2B | 7.2B | 7.2B |
+| **Disk Size** | **986 MB** | 1.9 GB | 2.0 GB | 4.4 GB | 4.4 GB |
+| **Peak RAM** | **~2.2 GB** | ~3.2 GB | ~3.4 GB | ~5.8 GB | ~5.8 GB |
+| **Cold-Start Latency** | **40.98 s** | 87.17 s | 94.82 s | 476.23 s (~8 min) | > 180 s (aborted) |
+| **Warm Avg Latency / Quote** | **24.69 s** | 37.61 s | 38.41 s | 150.87 s (~2.5 min) | 167.22 s (aborted) |
+| **Train Accuracy (10)** | 93.4% | 93.3% | **95.1%** | 94.7% | 56.5%* |
+| **Holdout Accuracy (8)** | 91.5% | 91.5% | **92.2%** | — | — |
+| **Generalization Gap** | **+1.9%** | **+1.8%** | +2.9% | — | — |
+| **Composite Accuracy** | 92.5% | 92.4% | **93.7%** | 94.7% (train only) | 56.5%* (timeout-affected) |
+
+*\*Earlier numbers for `mistral:latest` were artificially lowered by 180s timeouts on 6 out of 10 fixtures during CPU inference. When re-run with a 600s timeout, `mistral:latest` achieved 94.7% accuracy, but required ~183s per quote on CPU and nearly 8 minutes on cold-start.*
 
 ---
 
 ## Detailed Findings
 
-### 1. Speed & Responsiveness on CPU
-- **`qwen2.5:3b`**: Completed the 10 fixtures in 440 seconds (avg **~44 seconds** per dictation). For a tradesperson sitting in their van after finishing a job, 30–45 seconds is well within acceptable offline turnaround time.
-- **`mistral:latest`**: Required **167 seconds (~2.8 minutes)** on average per quote, frequently hitting 180-second timeouts on complex transcripts when running on CPU without dedicated GPU acceleration.
+### 1. Latency & Target Under 15s
+- **Latency Optimizations Applied**:
+  - `keep_alive = "15m"`: Keeps the model weights resident in system RAM between dictations, avoiding repeated cold-load overhead.
+  - `num_ctx = 2048` (reduced from 4096+): Lowers KV cache allocation and CPU attention computation time.
+  - `num_predict = 512`: Clamps maximum generated tokens to prevent runaway loops.
+- **Warm Latency Results**:
+  - `qwen2.5:1.5b` achieves an average warm latency of **24.69 s/quote**, with individual short jobs finishing in **17–19 s**.
+  - `llama3.2:3b` and `qwen2.5:3b` deliver ~**37–38 s/quote**.
+  - On pure CPU inference on portable quad-core laptops, a sustained sub-15s average requires either GPU/NPU hardware offload or 4-bit lightweight quantized weights with trimmed prompt tokens. For tradespeople dictating in a van, 20–25s is practical and offline.
 
-### 2. Prompt Adherence & Formatting
-- **Baseline Prompt**: In early testing without few-shot guidance, both models struggled with line-item extraction (recall was only 51.3%), frequently relegating labor hours and parts into the `notes` string rather than separate rows in `items`.
-- **Improved Prompt with Few-Shot Example**: Adding explicit instructions regarding self-corrections ("always take the final retracted number") and converting spoken word numbers into float decimals boosted `qwen2.5:3b` item recall from **51.3% to 87.2%**, achieving **93.3% composite accuracy**.
+### 2. Generalization & Holdout Split Evaluation
+- Evaluating on the 8 held-out fixtures (`tests/fixtures/holdout/`) confirmed that neither `qwen2.5` nor `llama3.2` overfitted to the training fixtures:
+  - `qwen2.5:1.5b`: 93.4% Train vs 91.5% Holdout (**+1.9% gap**).
+  - `qwen2.5:3b`: 93.3% Train vs 91.5% Holdout (**+1.8% gap**).
+  - `llama3.2:3b`: 95.1% Train vs 92.2% Holdout (**+2.9% gap**).
 
-### 3. Handling Real-World Speech Edge Cases
-- **Self-Corrections**: Handled accurately by `qwen2.5:3b` when guided by the prompt (e.g. correctly extracting 2.5 hours labor instead of 2.0, and 5 breakers instead of 4).
-- **Price Adherence**: In accordance with Hard Constraints 1 & 2, unknown prices remain `null` and are never hallucinated or guessed by the model. Real prices stated in speech (e.g., "$140 for InSinkErator disposal", "$220 Kohler toilet") are extracted faithfully.
+### 3. Speech Recognition & Trade Vocabulary (`scripts/eval_audio.py`)
+- We implemented a dedicated evaluation script for speech-to-text (`faster-whisper`) that computes Word Error Rate (Levenshtein distance) and trade term recall across trade-specific terms (`P-trap`, `GFCI`, `Romex`, `PEX`, `flux`, `capacitor`, `refrigerant`, `sillcock`, `CSST`, `Fernco`).
+- We configured a Whisper `initial_prompt` containing these trade terms in `Settings.whisper_initial_prompt` and supported custom prompts in `jobtalk.transcribe.transcribe()`.
+- The evaluation script is verified and ready to run against `.wav` or `.m4a` recordings supplied in `tests/audio/`.
 
 ---
 
 ## Recommendation
 
-**`qwen2.5:3b` is the recommended default model for JobTalk.**
-- **Lightweight download**: At 1.9 GB, it downloads quickly even on mobile hotspots.
-- **Resource-efficient**: Runs comfortably on 8 GB laptops or mini-PCs without GPU.
-- **Superior accuracy per watt**: Outperformed 7B models on CPU thanks to faster token generation avoiding request timeouts and following structured JSON schemas reliably.
+1. **Best for Speed & Battery Life (`qwen2.5:1.5b`)**:
+   - Fastest CPU turnaround (**~24.7s warm latency**), smallest disk size (**986 MB**), lowest memory footprint (**~2.2 GB RAM**), with strong **91.5% holdout accuracy**. Ideal default for budget laptops.
+2. **Best for Accuracy & Nuanced Corrections (`llama3.2:3b` / `qwen2.5:3b`)**:
+   - Top-tier accuracy (**95.1% train / 92.2% holdout** for Llama 3.2:3b), excellent extraction of complex multi-part corrections at ~38s latency.
