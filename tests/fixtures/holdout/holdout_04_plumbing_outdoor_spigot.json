@@ -1,0 +1,50 @@
+{
+  "id": "holdout_04",
+  "trade": "plumbing",
+  "transcript": "Outdoor frost-free sillcock replacement for Derek Young, 908 Highland Terrace. Old spigot split from freeze damage over winter. Cut out the old pipe in crawlspace and installed a twelve-inch frost-free sillcock valve. Used eight feet of half-inch PEX-A tubing, two brass PEX adapters, and secured the pipe with three copper J-hooks. Took an hour and forty-five minutes labor crawling around underneath. Sillcock is eighty-five dollars.",
+  "rates": {
+    "labor_hourly": 95,
+    "items": {
+      "sillcock": 85,
+      "pex": 1.25
+    }
+  },
+  "expected": {
+    "customer": "Derek Young",
+    "address": "908 Highland Terrace",
+    "job_summary": "Replaced freeze-damaged outdoor sillcock and crawlspace PEX line",
+    "notes": "Work completed in crawlspace; tested frost-free shutoff.",
+    "items": [
+      {
+        "description": "12-inch frost-free sillcock valve",
+        "kind": "material",
+        "qty": 1.0,
+        "unit_price": 85.0
+      },
+      {
+        "description": "1/2-inch PEX-A tubing (feet)",
+        "kind": "material",
+        "qty": 8.0,
+        "unit_price": 1.25
+      },
+      {
+        "description": "Brass PEX adapters",
+        "kind": "material",
+        "qty": 2.0,
+        "unit_price": null
+      },
+      {
+        "description": "Copper J-hooks",
+        "kind": "material",
+        "qty": 3.0,
+        "unit_price": null
+      },
+      {
+        "description": "Labor",
+        "kind": "labor",
+        "qty": 1.75,
+        "unit_price": 95.0
+      }
+    ]
+  }
+}

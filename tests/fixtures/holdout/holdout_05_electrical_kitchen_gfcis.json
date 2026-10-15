@@ -1,0 +1,38 @@
+{
+  "id": "holdout_05",
+  "trade": "electrical",
+  "transcript": "Kitchen small appliance branch circuit update for Brenda Nelson, 334 Pinehurst Road. Replaced three old ungrounded standard receptacles with twenty-amp tamper-resistant GFCI outlets. Added one dual-function AFCI/GFCI breaker in the panel. Tested trip thresholds and labeled all protected downstream outlets. Labor was two hours flat. GFCI receptacles are twenty-two bucks each on the rate sheet.",
+  "rates": {
+    "labor_hourly": 105,
+    "items": {
+      "gfci outlet": 22,
+      "afci/gfci breaker": 55
+    }
+  },
+  "expected": {
+    "customer": "Brenda Nelson",
+    "address": "334 Pinehurst Road",
+    "job_summary": "Kitchen branch circuit update with 20A GFCI outlets and AFCI breaker",
+    "notes": "Tested trip thresholds and labeled downstream outlets.",
+    "items": [
+      {
+        "description": "20-amp tamper-resistant GFCI outlets",
+        "kind": "material",
+        "qty": 3.0,
+        "unit_price": 22.0
+      },
+      {
+        "description": "AFCI/GFCI dual function breaker",
+        "kind": "material",
+        "qty": 1.0,
+        "unit_price": 55.0
+      },
+      {
+        "description": "Labor",
+        "kind": "labor",
+        "qty": 2.0,
+        "unit_price": 105.0
+      }
+    ]
+  }
+}

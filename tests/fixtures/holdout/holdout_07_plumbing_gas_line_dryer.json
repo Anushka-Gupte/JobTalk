@@ -1,0 +1,51 @@
+{
+  "id": "holdout_07",
+  "trade": "plumbing",
+  "transcript": "Gas line hookup for new clothes dryer at Walter White, 308 Negra Arroyo Lane. Teed off the existing one-inch black iron line in the laundry room with a one-inch to half-inch reducing tee. Installed a half-inch brass gas ball valve, fifteen feet of half-inch CSST flexible corrugated stainless tubing, and a four-foot appliance connector hose. Performed twenty-minute air pressure test at 15 PSI with manometer. Total labor three hours. Gas valve is twenty-eight dollars.",
+  "rates": {
+    "labor_hourly": 100,
+    "items": {
+      "gas ball valve": 28,
+      "csst": 4.5,
+      "appliance connector": 32
+    }
+  },
+  "expected": {
+    "customer": "Walter White",
+    "address": "308 Negra Arroyo Lane",
+    "job_summary": "Gas dryer hookup with black iron tee, CSST tubing, and shutoff valve",
+    "notes": "Passed 20-minute 15 PSI air pressure test with manometer.",
+    "items": [
+      {
+        "description": "Black iron reducing tee",
+        "kind": "material",
+        "qty": 1.0,
+        "unit_price": null
+      },
+      {
+        "description": "1/2-inch brass gas ball valve",
+        "kind": "material",
+        "qty": 1.0,
+        "unit_price": 28.0
+      },
+      {
+        "description": "1/2-inch CSST gas tubing (feet)",
+        "kind": "material",
+        "qty": 15.0,
+        "unit_price": 4.5
+      },
+      {
+        "description": "4-foot appliance connector hose",
+        "kind": "material",
+        "qty": 1.0,
+        "unit_price": 32.0
+      },
+      {
+        "description": "Labor",
+        "kind": "labor",
+        "qty": 3.0,
+        "unit_price": 100.0
+      }
+    ]
+  }
+}

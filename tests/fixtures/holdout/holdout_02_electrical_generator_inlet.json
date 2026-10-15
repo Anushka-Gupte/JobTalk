@@ -1,0 +1,52 @@
+{
+  "id": "holdout_02",
+  "trade": "electrical",
+  "transcript": "Generator interlock and inlet box for Arthur Pendelton at 73 Crestview Drive. Mounted a thirty-amp generator inlet box on the exterior wall. Ran fifteen feet of ten three Romex over to the main electrical panel. Installed a mechanical interlock kit on the Square D panel, and one 30-amp two-pole breaker. Wait, make that twenty feet of wire because we had to route around the gas meter. Labor was two and three quarter hours.",
+  "rates": {
+    "labor_hourly": 115,
+    "items": {
+      "generator inlet box": 85,
+      "interlock kit": 65,
+      "30a 2-pole breaker": 22,
+      "10/3 romex": 3.2
+    }
+  },
+  "expected": {
+    "customer": "Arthur Pendelton",
+    "address": "73 Crestview Drive",
+    "job_summary": "Generator 30A inlet box and panel interlock kit installation",
+    "notes": "Routed wire around exterior gas meter.",
+    "items": [
+      {
+        "description": "30-amp generator inlet box",
+        "kind": "material",
+        "qty": 1.0,
+        "unit_price": 85.0
+      },
+      {
+        "description": "10/3 Romex wire (feet)",
+        "kind": "material",
+        "qty": 20.0,
+        "unit_price": 3.2
+      },
+      {
+        "description": "Mechanical interlock kit",
+        "kind": "material",
+        "qty": 1.0,
+        "unit_price": 65.0
+      },
+      {
+        "description": "30-amp two-pole breaker",
+        "kind": "material",
+        "qty": 1.0,
+        "unit_price": 22.0
+      },
+      {
+        "description": "Labor",
+        "kind": "labor",
+        "qty": 2.75,
+        "unit_price": 115.0
+      }
+    ]
+  }
+}

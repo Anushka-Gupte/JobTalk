@@ -50,7 +50,12 @@ def ollama_chat(system: str, user: str, settings: Settings) -> str:
         "model": settings.llm_model,
         "stream": False,
         "format": "json",
-        "options": {"temperature": 0},
+        "keep_alive": settings.ollama_keep_alive,
+        "options": {
+            "temperature": 0,
+            "num_ctx": settings.ollama_num_ctx,
+            "num_predict": settings.ollama_num_predict,
+        },
         "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}],
     }).encode()
     req = urllib.request.Request(

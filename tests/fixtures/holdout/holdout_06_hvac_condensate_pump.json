@@ -1,0 +1,45 @@
+{
+  "id": "holdout_06",
+  "trade": "hvac",
+  "transcript": "AC overflow call at Dr. Kenneth Vance, 812 Orchard Court. Attic air handler primary drain clogged and float switch tripped. Cleared the drain line with nitrogen flush. Installed a new Little Giant automatic condensate pump with safety overflow switch. Ran thirty feet of three-eighths inch vinyl discharge tubing out to the exterior soffit. Labor was two and a half hours in the hot attic. Condensate pump is ninety-five dollars.",
+  "rates": {
+    "labor_hourly": 105,
+    "items": {
+      "condensate pump": 95,
+      "nitrogen flush": 65,
+      "vinyl tubing": 0.6
+    }
+  },
+  "expected": {
+    "customer": "Dr. Kenneth Vance",
+    "address": "812 Orchard Court",
+    "job_summary": "Attic air handler drain line flush and condensate pump installation",
+    "notes": "Work completed in attic; ran vinyl tube to exterior soffit.",
+    "items": [
+      {
+        "description": "Drain line nitrogen flush service",
+        "kind": "labor",
+        "qty": 1.0,
+        "unit_price": 65.0
+      },
+      {
+        "description": "Automatic condensate removal pump",
+        "kind": "material",
+        "qty": 1.0,
+        "unit_price": 95.0
+      },
+      {
+        "description": "3/8-inch vinyl discharge tubing (feet)",
+        "kind": "material",
+        "qty": 30.0,
+        "unit_price": 0.6
+      },
+      {
+        "description": "Labor",
+        "kind": "labor",
+        "qty": 2.5,
+        "unit_price": 105.0
+      }
+    ]
+  }
+}

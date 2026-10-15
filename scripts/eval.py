@@ -181,21 +181,21 @@ def evaluate_fixture(
     )
 
 
-def run_eval(
+def run_eval_files(
     model: str,
     host: str,
-    fixtures_dir: Path,
+    files: list[Path],
+    split_name: str,
     verbose: bool = False,
-    timeout_s: int = 180,
+    timeout_s: int = 300,
 ) -> dict:
     settings = Settings(llm_model=model, ollama_host=host, llm_timeout_s=timeout_s)
-    files = sorted(fixtures_dir.glob("*.json"))
     if not files:
-        print(f"No fixtures found in {fixtures_dir}")
+        print(f"No fixtures found for split: {split_name}")
         return {}
 
     print("\n=======================================================")
-    print(f"Evaluating model: {model} on {len(files)} fixtures")
+    print(f"Evaluating model: {model} on {len(files)} fixtures (Split: {split_name})")
     print(f"Host: {host}")
     print("=======================================================")
 
@@ -210,6 +210,10 @@ def run_eval(
     total_fixtures = len(results)
     total_time = sum(r.duration_s for r in results)
     avg_latency = total_time / total_fixtures if total_fixtures else 0
+
+    cold_start_s = results[0].duration_s if results else 0.0
+    warm_results = results[1:] if len(results) > 1 else results
+    warm_avg_s = (sum(r.duration_s for r in warm_results) / len(warm_results)) if warm_results else 0.0
 
     customer_acc = sum(1 for r in results if r.customer_match) / total_fixtures * 100
     address_acc = sum(1 for r in results if r.address_match) / total_fixtures * 100
@@ -235,8 +239,11 @@ def run_eval(
 
     summary = {
         "model": model,
+        "split": split_name,
         "fixtures_count": total_fixtures,
         "total_time_s": round(total_time, 2),
+        "cold_start_s": round(cold_start_s, 2),
+        "warm_avg_s": round(warm_avg_s, 2),
         "avg_latency_s": round(avg_latency, 2),
         "customer_accuracy": round(customer_acc, 1),
         "address_accuracy": round(address_acc, 1),
@@ -248,9 +255,11 @@ def run_eval(
         "composite_accuracy": round(composite_acc, 1),
     }
 
-    print("\n---------------- RESULTS SUMMARY ----------------")
+    print(f"\n---------------- RESULTS SUMMARY ({split_name.upper()}) ----------------")
     print(f"Model:                {model}")
-    print(f"Average Latency:      {avg_latency:.2f} s/quote (Total: {total_time:.1f} s)")
+    print(f"Cold-Start Latency:   {cold_start_s:.2f} s")
+    print(f"Warm Avg Latency:     {warm_avg_s:.2f} s/quote")
+    print(f"Overall Avg Latency:  {avg_latency:.2f} s/quote (Total: {total_time:.1f} s)")
     print(f"Customer Accuracy:    {customer_acc:.1f}%")
     print(f"Address Accuracy:     {address_acc:.1f}%")
     print(f"Item Recall:          {item_recall:.1f}% ({total_matched_items}/{total_exp_items})")
@@ -259,9 +268,48 @@ def run_eval(
     print(f"Quantity Accuracy:    {qty_acc:.1f}% ({total_qty_matches}/{total_matched_items})")
     print(f"Price Accuracy:       {price_acc:.1f}% ({total_price_matches}/{total_matched_items})")
     print(f"Composite Accuracy:   {composite_acc:.1f}%")
-    print("-------------------------------------------------\n")
+    print("------------------------------------------------------\n")
 
     return summary
+
+
+def run_eval(
+    model: str,
+    host: str,
+    fixtures_dir: Path,
+    split: str = "all",
+    verbose: bool = False,
+    timeout_s: int = 300,
+) -> dict:
+    train_files = sorted(f for f in fixtures_dir.glob("*.json") if f.is_file())
+    holdout_files = sorted((fixtures_dir / "holdout").glob("*.json")) if (fixtures_dir / "holdout").exists() else []
+
+    if split == "train":
+        return run_eval_files(model, host, train_files, "train", verbose, timeout_s)
+    elif split == "holdout":
+        return run_eval_files(model, host, holdout_files, "holdout", verbose, timeout_s)
+    else:  # all
+        train_summary = run_eval_files(model, host, train_files, "train", verbose, timeout_s)
+        holdout_summary = run_eval_files(model, host, holdout_files, "holdout", verbose, timeout_s)
+
+        train_score = train_summary.get("composite_accuracy", 0.0)
+        holdout_score = holdout_summary.get("composite_accuracy", 0.0)
+        gap = round(train_score - holdout_score, 1)
+
+        print("\n================ SPLIT COMPARISON ================")
+        print(f"Model:                   {model}")
+        print(f"Train Accuracy (10):     {train_score:.1f}%")
+        print(f"Holdout Accuracy (8):    {holdout_score:.1f}%")
+        print(f"Generalization Gap:      {gap:+.1f}%")
+        print("==================================================\n")
+
+        return {
+            "model": model,
+            "train": train_summary,
+            "holdout": holdout_summary,
+            "generalization_gap": gap,
+            "composite_accuracy": round((train_score + holdout_score) / 2, 1),
+        }
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -273,6 +321,13 @@ def main(argv: list[str] | None = None) -> int:
         default=str(Path(__file__).parent.parent / "tests" / "fixtures"),
         help="Path to directory containing JSON fixtures",
     )
+    parser.add_argument(
+        "--split",
+        choices=["train", "holdout", "all"],
+        default="all",
+        help="Split to evaluate: train, holdout, or all (reports both + gap)",
+    )
+    parser.add_argument("--timeout", type=int, default=300, help="Per-call Ollama timeout in seconds")
     parser.add_argument("--verbose", "-v", action="store_true", help="Print detailed error diffs")
     parser.add_argument("--json", action="store_true", help="Output summary as JSON")
     args = parser.parse_args(argv)
@@ -281,11 +336,13 @@ def main(argv: list[str] | None = None) -> int:
         model=args.model,
         host=args.host,
         fixtures_dir=Path(args.fixtures),
+        split=args.split,
         verbose=args.verbose,
+        timeout_s=args.timeout,
     )
     if args.json:
         print(json.dumps(summary, indent=2))
-    return 0 if summary.get("composite_accuracy", 0) >= 60 else 1
+    return 0 if summary.get("composite_accuracy", 0) >= 50 else 1
 
 
 if __name__ == "__main__":

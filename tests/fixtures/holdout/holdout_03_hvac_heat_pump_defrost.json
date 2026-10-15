@@ -1,0 +1,44 @@
+{
+  "id": "holdout_03",
+  "trade": "hvac",
+  "transcript": "Service call for Maria Santos at 410 Willow Way. Heat pump wasn't heating properly in cold weather. Found the defrost control board failed and stuck in defrost mode. Replaced the defrost control board, swapped the outdoor ambient temperature sensor, and added a bottle of acid away treatment to the compressor. Customer had already paid forty dollars travel fee, don't re-bill that. Total technician time on site was one hour and fifteen minutes.",
+  "rates": {
+    "labor_hourly": 110,
+    "items": {
+      "defrost control board": 165,
+      "ambient temperature sensor": 38
+    }
+  },
+  "expected": {
+    "customer": "Maria Santos",
+    "address": "410 Willow Way",
+    "job_summary": "Heat pump defrost board and ambient sensor replacement",
+    "notes": "Travel fee previously paid; do not re-bill.",
+    "items": [
+      {
+        "description": "Defrost control board",
+        "kind": "material",
+        "qty": 1.0,
+        "unit_price": 165.0
+      },
+      {
+        "description": "Outdoor ambient temperature sensor",
+        "kind": "material",
+        "qty": 1.0,
+        "unit_price": 38.0
+      },
+      {
+        "description": "Compressor acid away treatment",
+        "kind": "material",
+        "qty": 1.0,
+        "unit_price": null
+      },
+      {
+        "description": "Labor",
+        "kind": "labor",
+        "qty": 1.25,
+        "unit_price": 110.0
+      }
+    ]
+  }
+}
