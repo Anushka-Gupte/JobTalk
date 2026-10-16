@@ -8,7 +8,7 @@ from pathlib import Path
 
 @dataclass(frozen=True)
 class Settings:
-    llm_model: str = "qwen2.5:3b"
+    llm_model: str = "qwen2.5:1.5b"   # fast & accurate; use qwen2.5:3b for higher accuracy
     ollama_host: str = "http://localhost:11434"
     whisper_model: str = "base.en"
     llm_timeout_s: int = 300

@@ -54,11 +54,27 @@ Testing was conducted using `scripts/eval.py` on standard CPU hardware with Olla
 - We configured a Whisper `initial_prompt` containing these trade terms in `Settings.whisper_initial_prompt` and supported custom prompts in `jobtalk.transcribe.transcribe()`.
 - The evaluation script is verified and ready to run against `.wav` or `.m4a` recordings supplied in `tests/audio/`.
 
+### 4. Streaming Inference & JSON Schema Constrained Output (Phase 2a)
+- **JSON Schema Output (`format: FORMAT_SCHEMA`)**:
+  - Leverages Ollama's schema-constrained grammar sampling to guarantee structurally valid JSON adhering to `{customer, address, job_summary, notes, items}`.
+  - Eliminated the need for verbose few-shot formatting tokens in `SYSTEM_PROMPT`.
+  - Re-evaluating on all 18 fixtures confirmed accuracy is preserved: **93.1% Train / 92.1% Holdout** composite accuracy on `qwen2.5:1.5b`.
+- **Perceived Latency via Streaming (`stream: true`)**:
+  - Without streaming, the user faces a 20–25s blocking pause before seeing any output.
+  - With `stream_extract_job`, token events begin arriving early, and complete line items (`("item", LineItem)`) are parsed and emitted via progressive JSON object scanning.
+  - **Benchmark on `plumbing_01_water_heater.json` (`qwen2.5:1.5b`)**:
+    - **Time to First Token**: ~2–15s (depending on warm KV cache).
+    - **Time to First Line Item**: ~18–24s (line item populates in UI while remaining items continue streaming).
+    - **Token Chunks Yielded**: ~195 chunks.
+    - **Total Extraction Time**: ~25–30s.
+
 ---
 
-## Recommendation
+## Recommendation & Default Model
 
-1. **Best for Speed & Battery Life (`qwen2.5:1.5b`)**:
-   - Fastest CPU turnaround (**~24.7s warm latency**), smallest disk size (**986 MB**), lowest memory footprint (**~2.2 GB RAM**), with strong **91.5% holdout accuracy**. Ideal default for budget laptops.
-2. **Best for Accuracy & Nuanced Corrections (`llama3.2:3b` / `qwen2.5:3b`)**:
-   - Top-tier accuracy (**95.1% train / 92.2% holdout** for Llama 3.2:3b), excellent extraction of complex multi-part corrections at ~38s latency.
+1. **Default Model: `qwen2.5:1.5b`**:
+   - Configured as default in `Settings.llm_model`.
+   - Fastest CPU turnaround (**~24.7s warm latency**), smallest disk footprint (**986 MB**), lowest memory usage (**~2.2 GB RAM**), with **92.1% holdout accuracy**.
+2. **High-Accuracy Option: `qwen2.5:3b` / `llama3.2:3b`**:
+   - Stronger extraction of complex multi-part corrections at ~38s latency.
+
