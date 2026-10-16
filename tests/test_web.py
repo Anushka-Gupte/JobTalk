@@ -1,24 +1,19 @@
 import json
 import re
 import socket
-import threading
-import urllib.error
-import urllib.request
 from typing import Any
 
 import pytest
+from fastapi.testclient import TestClient
 from jobtalk.config import Settings
 from jobtalk.models import LineItem
-from jobtalk.web import _parse_multipart, run_server
+
+from backend.app import create_app
 
 
 @pytest.fixture
-def test_server():
-    """Start an in-memory ThreadingHTTPServer on an ephemeral port in a daemon thread."""
-    settings = Settings(llm_model="qwen2.5:1.5b")
-    rates = {"labor_hourly": 90.0, "items": {"shutoff valve": 25.0}}
-
-    def fake_stream(transcript: str, user_rates: dict, settings: Settings):
+def fake_stream():
+    def _stream(transcript: str, user_rates: dict, settings: Settings):
         yield ("item", LineItem(description="Test Labor", kind="labor", qty=1.0, unit_price=90.0))
         yield ("item", LineItem(description="P-trap", kind="material", qty=1.0, unit_price=15.0))
         done_payload = json.dumps({
@@ -33,63 +28,69 @@ def test_server():
         })
         yield ("done", done_payload)
 
-    def fake_transcribe(path: Any, settings: Settings) -> str:
-        return "Fake audio transcript"
+    return _stream
 
-    server = run_server(
-        host="127.0.0.1",
-        port=0,
-        settings=settings,
-        rates=rates,
-        business="Acme Plumbing",
-        tax_rate=0.05,
-        warmup=False,
+
+@pytest.fixture
+def fake_transcribe():
+    def _transcribe(path: Any, settings: Settings) -> str:
+        return "Fake audio transcript from mock"
+
+    return _transcribe
+
+
+@pytest.fixture
+def client(fake_stream, fake_transcribe):
+    app = create_app(
+        config_overrides={
+            "business_name": "Acme Plumbing",
+            "tax_rate": 0.05,
+            "upload_max_size_mb": 1,
+        },
         stream_extract_fn=fake_stream,
         transcribe_fn=fake_transcribe,
+        warmup=False,
     )
-    port = server.server_address[1]
-
-    thread = threading.Thread(target=server.serve_forever, daemon=True)
-    thread.start()
-
-    try:
-        yield f"http://127.0.0.1:{port}"
-    finally:
-        server.shutdown()
-        server.server_close()
+    return TestClient(app)
 
 
-def test_index_serves_html_and_has_no_external_dependencies(test_server):
-    base_url = test_server
-    req = urllib.request.Request(f"{base_url}/")
-    with urllib.request.urlopen(req, timeout=5) as resp:
-        assert resp.status == 200
-        assert "text/html" in resp.headers["Content-Type"]
-        html = resp.read().decode("utf-8")
+def test_index_serves_html_and_has_no_external_dependencies(client):
+    resp = client.get("/")
+    assert resp.status_code == 200
+    assert "text/html" in resp.headers.get("content-type", "")
+    html = resp.text
 
-    # Assert local-first offline stack: no external CDNs, fonts, or scripts
+    # Assert local-only offline stack: no external CDNs, fonts, or tracking scripts
     external_scripts = re.findall(r'<script[^>]+src=["\'](http[s]?://[^"\']+|//[^"\'])["\']', html)
     external_links = re.findall(r'<link[^>]+href=["\'](http[s]?://[^"\']+|//[^"\'])["\']', html)
     assert not external_scripts, f"Found external scripts: {external_scripts}"
     assert not external_links, f"Found external stylesheets: {external_links}"
     assert "JobTalk" in html
     assert 'accept="audio/*"' in html
-    assert "isSecureContext" in html
     assert "Add missing line" in html
 
 
-def test_api_status_endpoint(test_server):
-    base_url = test_server
-    with urllib.request.urlopen(f"{base_url}/api/status", timeout=5) as resp:
-        assert resp.status == 200
-        data = json.loads(resp.read().decode("utf-8"))
-        assert data["model"] == "qwen2.5:1.5b"
-        assert data["business"] == "Acme Plumbing"
-        assert data["tax"] == 0.05
+def test_static_assets_served_locally(client):
+    css_resp = client.get("/style.css")
+    assert css_resp.status_code == 200
+    assert "text/css" in css_resp.headers.get("content-type", "")
+
+    js_resp = client.get("/app.js")
+    assert js_resp.status_code == 200
+    assert "javascript" in js_resp.headers.get("content-type", "")
 
 
-def test_api_recalculate_computes_totals_in_python(test_server):
-    base_url = test_server
+def test_api_health_endpoint(client):
+    resp = client.get("/api/health")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["status"] == "ok"
+    assert data["model"] == "qwen2.5:1.5b"
+    assert data["business"] == "Acme Plumbing"
+    assert data["tax"] == 0.05
+
+
+def test_api_recalculate_computes_totals_in_python(client):
     payload = {
         "items": [
             {"description": "Labor", "kind": "labor", "qty": 2.5, "unit_price": 90.0},
@@ -98,14 +99,9 @@ def test_api_recalculate_computes_totals_in_python(test_server):
         ],
         "tax_rate": 0.10,
     }
-    req = urllib.request.Request(
-        f"{base_url}/api/recalculate",
-        data=json.dumps(payload).encode(),
-        headers={"Content-Type": "application/json"},
-    )
-    with urllib.request.urlopen(req, timeout=5) as resp:
-        assert resp.status == 200
-        data = json.loads(resp.read().decode("utf-8"))
+    resp = client.post("/api/recalculate", json=payload)
+    assert resp.status_code == 200
+    data = resp.json()
 
     totals = data["totals"]
     # Labor: 2.5 * 90 = 225.0
@@ -121,8 +117,7 @@ def test_api_recalculate_computes_totals_in_python(test_server):
     assert totals["unpriced"] == 1
 
 
-def test_api_export_blocks_unpriced_when_not_accepted(test_server):
-    base_url = test_server
+def test_api_export_blocks_unpriced_when_not_accepted(client):
     payload = {
         "customer": "John Doe",
         "address": "123 Main St",
@@ -134,21 +129,12 @@ def test_api_export_blocks_unpriced_when_not_accepted(test_server):
         ],
         "allow_unpriced": False,
     }
-    req = urllib.request.Request(
-        f"{base_url}/api/export",
-        data=json.dumps(payload).encode(),
-        headers={"Content-Type": "application/json"},
-    )
-    with pytest.raises(urllib.error.HTTPError) as exc_info:
-        urllib.request.urlopen(req, timeout=5)
-
-    assert exc_info.value.code == 400
-    err_body = json.loads(exc_info.value.read().decode("utf-8"))
-    assert "unpriced item(s) must be priced or explicitly accepted" in err_body["error"]
+    resp = client.post("/api/export", json=payload)
+    assert resp.status_code == 400
+    assert "unpriced item(s) must be priced or explicitly accepted" in resp.json()["detail"]
 
 
-def test_api_export_succeeds_when_allow_unpriced_checked(test_server):
-    base_url = test_server
+def test_api_export_succeeds_when_allow_unpriced_checked(client):
     payload = {
         "customer": "John Doe",
         "address": "123 Main St",
@@ -161,45 +147,55 @@ def test_api_export_succeeds_when_allow_unpriced_checked(test_server):
         "allow_unpriced": True,
         "business": "Acme Plumbing",
     }
-    req = urllib.request.Request(
-        f"{base_url}/api/export",
-        data=json.dumps(payload).encode(),
-        headers={"Content-Type": "application/json"},
-    )
-    with urllib.request.urlopen(req, timeout=5) as resp:
-        assert resp.status == 200
-        html = resp.read().decode("utf-8")
-        assert "Acme Plumbing" in html
-        assert "John Doe" in html
-        assert "needs price" in html
+    resp = client.post("/api/export", json=payload)
+    assert resp.status_code == 200
+    assert "text/html" in resp.headers.get("content-type", "")
+    html = resp.text
+    assert "Acme Plumbing" in html
+    assert "John Doe" in html
+    assert "needs price" in html
 
 
-def test_api_extract_streams_sse_events(test_server):
-    base_url = test_server
-    req = urllib.request.Request(
-        f"{base_url}/api/extract",
-        data=json.dumps({"transcript": "Repaired sink"}).encode(),
-        headers={"Content-Type": "application/json"},
-    )
-    with urllib.request.urlopen(req, timeout=5) as resp:
-        assert resp.status == 200
-        assert "text/event-stream" in resp.headers["Content-Type"]
-        raw = resp.read().decode("utf-8")
+def test_api_extract_streams_sse_from_json(client):
+    resp = client.post("/api/extract", json={"transcript": "Repaired sink"})
+    assert resp.status_code == 200
+    assert "text/event-stream" in resp.headers.get("content-type", "")
+    content = resp.text
 
-    assert "event: transcript" in raw
-    assert "Repaired sink" in raw
-    assert "event: item" in raw
-    assert "Test Labor" in raw
-    assert "P-trap" in raw
-    assert "event: done" in raw
-    assert "Jane Smith" in raw
+    assert "event: transcript" in content
+    assert "Repaired sink" in content
+    assert "event: item" in content
+    assert "Test Labor" in content
+    assert "P-trap" in content
+    assert "event: done" in content
+    assert "Jane Smith" in content
 
 
-def test_no_outbound_network_calls_outside_localhost(test_server, monkeypatch):
+def test_api_extract_streams_sse_from_multipart_audio(client):
+    files = {"audio": ("dictation.wav", b"RIFFfakeaudiobytes", "audio/wav")}
+    data = {"rates": json.dumps({"labor_hourly": 95.0})}
+    resp = client.post("/api/extract", files=files, data=data)
+    assert resp.status_code == 200
+    assert "text/event-stream" in resp.headers.get("content-type", "")
+    content = resp.text
+
+    assert "event: transcript" in content
+    assert "Fake audio transcript from mock" in content
+    assert "event: item" in content
+    assert "event: done" in content
+
+
+def test_api_extract_enforces_upload_size_limit(client):
+    oversized = b"X" * (2 * 1024 * 1024)  # 2MB exceeds 1MB upload_max_size_mb
+    files = {"audio": ("huge.wav", oversized, "audio/wav")}
+    resp = client.post("/api/extract", files=files)
+    assert resp.status_code == 413
+    assert "exceeds maximum size" in resp.json()["detail"]
+
+
+def test_no_outbound_network_calls_outside_localhost(client, monkeypatch):
     """Assert server operations never make outbound calls outside 127.0.0.1 / localhost."""
-    base_url = test_server
     real_socket_connect = socket.socket.connect
-
     outbound_calls: list[tuple[str, int]] = []
 
     def guarded_connect(self: socket.socket, address: Any) -> Any:
@@ -212,35 +208,10 @@ def test_no_outbound_network_calls_outside_localhost(test_server, monkeypatch):
 
     monkeypatch.setattr(socket.socket, "connect", guarded_connect)
 
-    # Perform typical UI operations with timeout=5
-    with urllib.request.urlopen(f"{base_url}/api/status", timeout=5) as resp:
-        assert resp.status == 200
-
-    req = urllib.request.Request(
-        f"{base_url}/api/recalculate",
-        data=json.dumps({"items": [{"description": "Pipe", "kind": "material", "qty": 1, "unit_price": 10}]}).encode(),
-        headers={"Content-Type": "application/json"},
+    client.get("/api/health")
+    client.post(
+        "/api/recalculate",
+        json={"items": [{"description": "Pipe", "kind": "material", "qty": 1, "unit_price": 10}]},
     )
-    with urllib.request.urlopen(req, timeout=5) as resp:
-        assert resp.status == 200
 
     assert len(outbound_calls) == 0, f"Found illegal outbound network calls: {outbound_calls}"
-
-
-def test_parse_multipart_helper():
-    boundary = "----WebKitFormBoundaryXYZ"
-    body = (
-        f"--{boundary}\r\n"
-        'Content-Disposition: form-data; name="audio"; filename="job.wav"\r\n'
-        "Content-Type: audio/wav\r\n\r\n"
-        "FAKE_AUDIO_DATA\r\n"
-        f"--{boundary}\r\n"
-        'Content-Disposition: form-data; name="rates"\r\n\r\n'
-        '{"labor_hourly": 95}\r\n'
-        f"--{boundary}--\r\n"
-    ).encode()
-
-    fields, audio_bytes, filename = _parse_multipart(f"multipart/form-data; boundary={boundary}", body)
-    assert audio_bytes == b"FAKE_AUDIO_DATA"
-    assert filename == "job.wav"
-    assert fields.get("rates") == '{"labor_hourly": 95}'

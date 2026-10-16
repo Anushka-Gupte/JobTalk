@@ -11,54 +11,65 @@ JobTalk turns it into a formatted, itemized quote. It runs fully offline on open
 - **Customizable:** your own price list, swappable models, fine-tunable per trade.
 
 ## Quick start
+
 ```bash
-make install                 # pip install -e ".[audio,dev]"
-make demo                    # no mic or LLM needed → output/quote.html
+pip install -e ".[web,audio]"   # one-time setup
+python run.py                   # checks Ollama, starts server, opens browser
 ```
 
-Real use (needs a one-time model download, then works offline):
+Open **http://localhost:5000** — or on a phone on the same Wi-Fi, `http://<laptop-ip>:5000`.
+
+> The first run downloads `qwen2.5:1.5b` (~1 GB) if it isn't already pulled.
+> All settings (business name, tax rate, model, port) live in [`config.yaml`](config.yaml).
+
+### CLI (no browser needed)
+
 ```bash
 ollama pull qwen2.5:1.5b
-jobtalk job.m4a --business "Dave's Plumbing" --tax 0.08 --rates examples/rates.json
+jobtalk job.m4a --rates examples/rates.json
 jobtalk examples/sample_transcript.txt --rates examples/rates.json
 ```
+
 Open `output/quote.html` in a browser and print to PDF.
 
-## Local Web UI (Browser & Phone)
+### LAN / phone access
 
-Start the local web server:
 ```bash
-jobtalk --serve --rates examples/rates.json --business "Dave's Plumbing" --tax 0.08
+python run.py --lan    # binds 0.0.0.0 — prints your LAN IP
 ```
-Then navigate to:
-- **On this computer**: `http://localhost:5000`
-- **On a phone or tablet (same Wi-Fi)**: `http://<laptop-ip>:5000` (e.g. `http://192.168.1.50:5000`)
 
-### Features
-- **Progressive SSE Streaming**: Spoken transcript appears immediately after Whisper finishes, followed by line items populating one by one in real-time as the local LLM generates them.
-- **Editable Line Items**: Live editing of item description, kind (labor/material), quantity, and price. Includes an **"+ Add missing line"** button for missed billable items.
-- **Live Recalculation**: All money math and tax computations run strictly in Python via `/api/recalculate`, never in client-side JavaScript.
-- **Unpriced Line Protection**: Unpriced lines are flagged with visual badges. Quote export is blocked until prices are entered or the user explicitly checks "Accept unpriced items on quote".
-- **Zero External Calls**: 100% offline, self-contained HTML/CSS/JS without external CDN fonts, scripts, or analytics.
+> **No authentication is added.** Use only on a trusted network.
 
-### Mobile & Phone Browser Workaround
-Modern phone browsers (iOS Safari and Android Chrome) restrict the Web Audio `MediaRecorder` API to secure contexts (`https://` or `localhost`). When accessing the web UI over local Wi-Fi HTTP (`http://192.168.x.x:5000`):
-1. The browser microphone button is automatically hidden.
-2. **Workaround**: Dictate your job into your phone's native **Voice Memos** (iOS) or **Voice Recorder** (Android) app.
-3. Tap **Select Audio File** in JobTalk and select your recorded memo. Whisper and the local LLM process the audio completely offline.
+## Web UI features
+
+- **SSE Streaming** — transcript appears immediately after Whisper; line items arrive one by one.
+- **Editable table** — change description, kind, qty, price inline. **"+ Add missing line"** for items the model missed.
+- **Python-only math** — all totals and tax computed server-side via `/api/recalculate`.
+- **Unpriced guard** — highlighted rows block export until priced or explicitly accepted.
+- **Fully offline** — no CDN fonts, no analytics, no external network calls.
+
+### Phone browser note
+
+`MediaRecorder` requires `https://` or `localhost`. Over plain HTTP on Wi-Fi the microphone
+button is hidden automatically. **Workaround**: record in your phone's Voice Memos / Voice
+Recorder app, then tap **Select Audio File** to upload.
 
 ## Project layout
 ```
-src/           transcribe, extract, pricing, render, cli (installs as `jobtalk`)
+backend/       FastAPI app (routes, SSE, export)
+frontend/      Static HTML/CSS/JS — no build step
+src/           Core pipeline: transcribe, extract, pricing, render, cli (installs as `jobtalk`)
 tests/         pytest suite (no LLM or mic required)
-examples/      sample rates.json and transcript
-docs/          architecture and design decisions
+examples/      Sample rates.json and transcript
+docs/          Architecture and model benchmarks
+config.yaml    Business settings (name, tax, model, port)
+run.py         One-command launcher
 ```
 
 ## Development
 ```bash
-make test    # pytest (runs offline unit tests)
-make lint    # ruff check src tests scripts
+python -m pytest --timeout=60   # full offline suite
+ruff check src tests scripts backend run.py
 ```
 
 ### Evaluation & Model Benchmarks

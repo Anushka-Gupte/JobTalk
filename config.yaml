@@ -1,0 +1,8 @@
+# JobTalk configuration
+business_name: "Dave's Plumbing"
+tax_rate: 0.08
+rates_path: "examples/rates.json"
+model: "qwen2.5:1.5b"
+host: "127.0.0.1"
+port: 5000
+upload_max_size_mb: 25

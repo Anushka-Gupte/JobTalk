@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>JobTalk &mdash; Voice to Quote</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <h1>JobTalk</h1>
+      <span>Offline Voice-to-Quote for Trades</span>
+    </div>
+    <div id="statusBadge" class="status-badge status-loading">
+      <span class="status-dot"></span>
+      <span id="statusText">Checking model...</span>
+    </div>
+  </header>
+
+  <div class="container">
+    <!-- Audio & Transcript Input Section -->
+    <div class="card">
+      <div class="card-title">
+        <span>Step 1: Spoken Job Audio or Transcript</span>
+      </div>
+      <div class="audio-inputs">
+        <!-- File Upload (Primary) -->
+        <div class="upload-zone" id="uploadZone">
+          <svg style="width:36px;height:36px;margin:0 auto 8px auto;display:block;fill:none;stroke:#3b82f6;stroke-width:2;" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+          </svg>
+          <p><strong>Upload Audio File (Primary)</strong></p>
+          <p style="font-size:0.8rem;color:var(--text-muted);margin:4px 0 10px 0;">Record on phone memos or dictation app (.m4a, .wav, .mp3, .ogg)</p>
+          <input type="file" id="audioFileInput" accept="audio/*">
+          <button type="button" class="btn btn-primary" onclick="document.getElementById('audioFileInput').click()">Select Audio File</button>
+          <p id="selectedFileName" style="font-size:0.85rem;color:#10b981;margin-top:8px;display:none;"></p>
+        </div>
+
+        <!-- Microphone Recording (MediaRecorder Enhancement) -->
+        <div class="mic-box" id="micSection">
+          <svg style="width:36px;height:36px;fill:none;stroke:#10b981;stroke-width:2;" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 02-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+          </svg>
+          <p><strong>Browser Microphone</strong></p>
+          <button type="button" id="recordBtn" class="btn btn-secondary" onclick="toggleRecord()">Start Recording</button>
+          <span id="recordTimer" style="font-size:0.85rem;color:var(--text-muted);display:none;">00:00</span>
+        </div>
+
+        <!-- Phone Insecure Context Notice (shown on phone Wi-Fi non-localhost) -->
+        <div class="phone-notice" id="micNotice" style="display:none;grid-column: 1 / -1;">
+          <strong>Phone Wi-Fi Notice:</strong> Browser microphone access is restricted by phone browsers over plain HTTP (non-HTTPS).
+          <br>Use your phone's native <em>Voice Memos</em> or <em>Voice Recorder</em> app, then tap <strong>Select Audio File</strong> above.
+        </div>
+      </div>
+
+      <div style="margin-top:14px;display:flex;justify-content:flex-end;gap:10px;">
+        <button type="button" id="processBtn" class="btn btn-accent" onclick="processAudio()" disabled>
+          Transcribe &amp; Extract Quote
+        </button>
+      </div>
+
+      <!-- Live status indicator -->
+      <div id="progressState" class="progress-state" style="margin-top:14px;">
+        <div class="spinner"></div>
+        <span id="progressMsg">Processing...</span>
+      </div>
+    </div>
+
+    <!-- Dual Pane Workspace -->
+    <div class="workspace">
+      <!-- Left Pane: Transcript -->
+      <div class="card transcript-pane">
+        <div class="card-title">
+          <span>Raw Spoken Transcript</span>
+          <button type="button" class="btn btn-secondary" style="font-size:0.75rem;padding:4px 8px;" onclick="extractFromTranscript()">
+            Re-Extract from Text
+          </button>
+        </div>
+        <p style="font-size:0.8rem;color:var(--text-muted);">
+          Appears immediately after Whisper transcribes. You can also edit text directly here and click "Re-Extract".
+        </p>
+        <textarea id="transcriptText" placeholder="Dictate audio above or type/paste transcript here..."></textarea>
+      </div>
+
+      <!-- Right Pane: Line Items & Totals -->
+      <div class="card">
+        <div class="card-title">
+          <span>Extracted Line Items &amp; Quote</span>
+        </div>
+
+        <!-- Metadata row -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+          <div>
+            <label style="font-size:0.75rem;color:var(--text-muted);">Customer</label>
+            <input type="text" id="custName" placeholder="Customer name" oninput="triggerRecalc()">
+          </div>
+          <div>
+            <label style="font-size:0.75rem;color:var(--text-muted);">Address</label>
+            <input type="text" id="custAddr" placeholder="Service address" oninput="triggerRecalc()">
+          </div>
+        </div>
+
+        <div style="margin-bottom:12px;">
+          <label style="font-size:0.75rem;color:var(--text-muted);">Job Summary</label>
+          <input type="text" id="jobSummary" placeholder="Summary of work" oninput="triggerRecalc()">
+        </div>
+
+        <!-- Line items table -->
+        <div class="table-container">
+          <table id="itemsTable">
+            <thead>
+              <tr>
+                <th style="width:40%;">Description</th>
+                <th style="width:18%;">Kind</th>
+                <th style="width:14%;">Qty</th>
+                <th style="width:16%;">Unit Price</th>
+                <th style="width:12%;text-align:right;">Total</th>
+                <th style="width:30px;"></th>
+              </tr>
+            </thead>
+            <tbody id="itemsBody">
+              <!-- Rendered via JS -->
+            </tbody>
+          </table>
+        </div>
+
+        <div class="table-actions">
+          <button type="button" class="btn btn-secondary" onclick="addEmptyRow()">
+            + Add missing line
+          </button>
+        </div>
+
+        <!-- Warning for unpriced items -->
+        <div id="unpricedAlert" class="unpriced-alert">
+          <strong>Action Required:</strong> <span id="unpricedCount">0</span> item(s) have no price set. Enter a price or check the acceptance box below to export.
+        </div>
+
+        <!-- Totals summary -->
+        <div class="totals-card">
+          <div class="totals-row">
+            <span>Labor:</span>
+            <span id="totLabor">$0.00</span>
+          </div>
+          <div class="totals-row">
+            <span>Materials:</span>
+            <span id="totMaterials">$0.00</span>
+          </div>
+          <div class="totals-row">
+            <span>Subtotal:</span>
+            <span id="totSubtotal">$0.00</span>
+          </div>
+          <div class="totals-row">
+            <span>Tax (<span id="taxRateDisplay">0%</span>):</span>
+            <span id="totTax">$0.00</span>
+          </div>
+          <div class="totals-row grand">
+            <span>Grand Total:</span>
+            <span id="totGrand">$0.00</span>
+          </div>
+        </div>
+
+        <div style="margin-bottom:14px;">
+          <label style="font-size:0.75rem;color:var(--text-muted);">Notes</label>
+          <input type="text" id="jobNotes" placeholder="General observations or notes" oninput="triggerRecalc()">
+        </div>
+
+        <!-- Export bar -->
+        <div class="export-bar">
+          <label class="checkbox-label">
+            <input type="checkbox" id="allowUnpricedCheck" onchange="updateExportState()">
+            <span>Accept unpriced items on quote</span>
+          </label>
+          <button type="button" id="exportBtn" class="btn btn-accent" onclick="exportQuote()">
+            Export Quote (HTML / Print)
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>

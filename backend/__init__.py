@@ -1,0 +1,1 @@
+"""JobTalk backend package."""
