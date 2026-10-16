@@ -54,6 +54,30 @@ ChatFn = Callable[[str, str, Settings], str]
 StreamChatFn = Callable[[str, str, Settings], Iterator[str]]
 
 
+def warmup_model(settings: Settings | None = None) -> bool:
+    """Send a lightweight 1-token request to load the model into memory with keep_alive."""
+    if settings is None:
+        settings = Settings()
+    body = json.dumps({
+        "model": settings.llm_model,
+        "keep_alive": settings.ollama_keep_alive,
+        "options": {"num_predict": 1},
+        "messages": [{"role": "user", "content": "ping"}],
+        "stream": False,
+    }).encode()
+    req = urllib.request.Request(
+        f"{settings.ollama_host}/api/chat",
+        data=body,
+        headers={"Content-Type": "application/json"},
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=settings.llm_timeout_s) as resp:
+            resp.read()
+            return True
+    except Exception:  # noqa: BLE001
+        return False
+
+
 # ---------------------------------------------------------------------------
 # Non-streaming Ollama client (with schema format)
 # ---------------------------------------------------------------------------
@@ -126,6 +150,7 @@ def _iter_events(token_iter: Iterator[str]) -> Iterator[tuple[str, object]]:
     """
     full: list[str] = []
     in_items = False
+    items_done = False
     brace_depth = 0
     item_buf: list[str] = []
     scan_buf = ""
@@ -133,6 +158,9 @@ def _iter_events(token_iter: Iterator[str]) -> Iterator[tuple[str, object]]:
     for token in token_iter:
         full.append(token)
         yield ("token", token)
+
+        if items_done:
+            continue
 
         scan_buf += token
 
@@ -160,6 +188,10 @@ def _iter_events(token_iter: Iterator[str]) -> Iterator[tuple[str, object]]:
                 if c == "{":
                     brace_depth = 1
                     item_buf = ["{"]
+                elif c == "]":
+                    items_done = True
+                    in_items = False
+                    break
                 # else ignore (commas, whitespace, closing ']', etc.)
             else:
                 item_buf.append(c)

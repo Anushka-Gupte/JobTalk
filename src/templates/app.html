@@ -1,0 +1,940 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>JobTalk &mdash; Voice to Quote</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --card-border: #334155;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --accent: #10b981;
+      --warning: #f59e0b;
+      --warning-bg: #451a03;
+      --warning-border: #78350f;
+      --danger: #ef4444;
+      --danger-hover: #dc2626;
+      --table-stripe: #1e293b;
+      --input-bg: #0f172a;
+      --input-border: #475569;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      padding: 16px;
+      min-height: 100vh;
+    }
+    header {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      max-width: 1280px;
+      margin: 0 auto 20px auto;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--card-border);
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .brand h1 { font-size: 1.5rem; font-weight: 700; color: #fff; }
+    .brand span { font-size: 0.85rem; color: var(--text-muted); }
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      background: #1e293b;
+      border: 1px solid var(--card-border);
+    }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #64748b; }
+    .status-ready .status-dot { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+    .status-loading .status-dot { background: var(--warning); animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+    .container {
+      max-width: 1280px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* Input card */
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .card-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .audio-inputs {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+    @media (min-width: 768px) {
+      .audio-inputs { grid-template-columns: 1fr 1fr; }
+    }
+
+    .upload-zone {
+      border: 2px dashed var(--card-border);
+      border-radius: 6px;
+      padding: 20px;
+      text-align: center;
+      background: rgba(15, 23, 42, 0.4);
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+    .upload-zone:hover { border-color: var(--primary); }
+    .upload-zone input[type="file"] { display: none; }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 8px 16px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      transition: background 0.15s, opacity 0.15s;
+    }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover:not(:disabled) { background: var(--primary-hover); }
+    .btn-secondary { background: #334155; color: #f8fafc; }
+    .btn-secondary:hover:not(:disabled) { background: #475569; }
+    .btn-accent { background: var(--accent); color: #0f172a; font-weight: 600; }
+    .btn-accent:hover:not(:disabled) { filter: brightness(1.1); }
+    .btn-danger { background: var(--danger); color: #fff; }
+    .btn-danger:hover:not(:disabled) { background: var(--danger-hover); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .mic-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      border: 1px solid var(--card-border);
+      border-radius: 6px;
+      background: rgba(15, 23, 42, 0.4);
+      gap: 12px;
+    }
+    .phone-notice {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      background: rgba(245, 158, 11, 0.1);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      border-radius: 6px;
+      padding: 10px;
+      margin-top: 8px;
+    }
+
+    /* Progress bar */
+    .progress-state {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      background: #1e293b;
+      border: 1px solid var(--primary);
+      border-radius: 6px;
+      font-size: 0.9rem;
+    }
+    .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Dual pane workspace */
+    .workspace {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 20px;
+    }
+    @media (min-width: 900px) {
+      .workspace { grid-template-columns: 1fr 1.6fr; }
+    }
+
+    /* Transcript pane */
+    .transcript-pane {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    textarea, input[type="text"], input[type="number"], select {
+      width: 100%;
+      background: var(--input-bg);
+      border: 1px solid var(--input-border);
+      color: var(--text);
+      padding: 8px 10px;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      font-family: inherit;
+    }
+    textarea:focus, input:focus, select:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+    }
+    #transcriptText {
+      height: 280px;
+      resize: vertical;
+      line-height: 1.5;
+    }
+
+    /* Line items table */
+    .table-container {
+      overflow-x: auto;
+      margin-bottom: 14px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+    th, td {
+      padding: 8px 6px;
+      border-bottom: 1px solid var(--card-border);
+      text-align: left;
+    }
+    th {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+    }
+    tr.unpriced {
+      background: rgba(245, 158, 11, 0.08);
+    }
+    tr.unpriced td:first-child {
+      border-left: 3px solid var(--warning);
+    }
+    .badge-warn {
+      display: inline-block;
+      font-size: 0.7rem;
+      padding: 1px 5px;
+      border-radius: 4px;
+      background: var(--warning-bg);
+      color: #fde68a;
+      border: 1px solid var(--warning-border);
+      margin-top: 2px;
+    }
+    .table-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    /* Totals box */
+    .totals-card {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid var(--card-border);
+      border-radius: 6px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 16px;
+    }
+    .totals-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+    .totals-row.grand {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #fff;
+      border-top: 1px solid var(--card-border);
+      padding-top: 8px;
+      margin-top: 4px;
+    }
+    .unpriced-alert {
+      display: none;
+      background: var(--warning-bg);
+      border: 1px solid var(--warning-border);
+      color: #fde68a;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      margin-bottom: 12px;
+    }
+
+    .export-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      color: var(--text-muted);
+    }
+    .checkbox-label input { width: auto; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <h1>JobTalk</h1>
+      <span>Offline Voice-to-Quote for Trades</span>
+    </div>
+    <div id="statusBadge" class="status-badge status-loading">
+      <span class="status-dot"></span>
+      <span id="statusText">Checking model...</span>
+    </div>
+  </header>
+
+  <div class="container">
+    <!-- Audio & Transcript Input Section -->
+    <div class="card">
+      <div class="card-title">
+        <span>Step 1: Spoken Job Audio or Transcript</span>
+      </div>
+      <div class="audio-inputs">
+        <!-- File Upload (Primary) -->
+        <div class="upload-zone" id="uploadZone">
+          <svg style="width:36px;height:36px;margin:0 auto 8px auto;display:block;fill:none;stroke:#3b82f6;stroke-width:2;" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+          </svg>
+          <p><strong>Upload Audio File (Primary)</strong></p>
+          <p style="font-size:0.8rem;color:var(--text-muted);margin:4px 0 10px 0;">Record on phone memos or dictation app (.m4a, .wav, .mp3, .ogg)</p>
+          <input type="file" id="audioFileInput" accept="audio/*">
+          <button type="button" class="btn btn-primary" onclick="document.getElementById('audioFileInput').click()">Select Audio File</button>
+          <p id="selectedFileName" style="font-size:0.85rem;color:#10b981;margin-top:8px;display:none;"></p>
+        </div>
+
+        <!-- Microphone Recording (MediaRecorder Enhancement) -->
+        <div class="mic-box" id="micSection">
+          <svg style="width:36px;height:36px;fill:none;stroke:#10b981;stroke-width:2;" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 02-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+          </svg>
+          <p><strong>Browser Microphone</strong></p>
+          <button type="button" id="recordBtn" class="btn btn-secondary" onclick="toggleRecord()">Start Recording</button>
+          <span id="recordTimer" style="font-size:0.85rem;color:var(--text-muted);display:none;">00:00</span>
+        </div>
+
+        <!-- Phone Insecure Context Notice (shown on phone Wi-Fi non-localhost) -->
+        <div class="phone-notice" id="micNotice" style="display:none;grid-column: 1 / -1;">
+          <strong>Phone Wi-Fi Notice:</strong> Browser microphone access is restricted by phone browsers over plain HTTP (non-HTTPS).
+          <br>Use your phone's native <em>Voice Memos</em> or <em>Voice Recorder</em> app, then tap <strong>Select Audio File</strong> above.
+        </div>
+      </div>
+
+      <div style="margin-top:14px;display:flex;justify-content:flex-end;gap:10px;">
+        <button type="button" id="processBtn" class="btn btn-accent" onclick="processAudio()" disabled>
+          Transcribe &amp; Extract Quote
+        </button>
+      </div>
+
+      <!-- Live status indicator -->
+      <div id="progressState" class="progress-state" style="margin-top:14px;">
+        <div class="spinner"></div>
+        <span id="progressMsg">Processing...</span>
+      </div>
+    </div>
+
+    <!-- Dual Pane Workspace -->
+    <div class="workspace">
+      <!-- Left Pane: Transcript -->
+      <div class="card transcript-pane">
+        <div class="card-title">
+          <span>Raw Spoken Transcript</span>
+          <button type="button" class="btn btn-secondary" style="font-size:0.75rem;padding:4px 8px;" onclick="extractFromTranscript()">
+            Re-Extract from Text
+          </button>
+        </div>
+        <p style="font-size:0.8rem;color:var(--text-muted);">
+          Appears immediately after Whisper transcribes. You can also edit text directly here and click "Re-Extract".
+        </p>
+        <textarea id="transcriptText" placeholder="Dictate audio above or type/paste transcript here..."></textarea>
+      </div>
+
+      <!-- Right Pane: Line Items & Totals -->
+      <div class="card">
+        <div class="card-title">
+          <span>Extracted Line Items &amp; Quote</span>
+        </div>
+
+        <!-- Metadata row -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+          <div>
+            <label style="font-size:0.75rem;color:var(--text-muted);">Customer</label>
+            <input type="text" id="custName" placeholder="Customer name" oninput="triggerRecalc()">
+          </div>
+          <div>
+            <label style="font-size:0.75rem;color:var(--text-muted);">Address</label>
+            <input type="text" id="custAddr" placeholder="Service address" oninput="triggerRecalc()">
+          </div>
+        </div>
+
+        <div style="margin-bottom:12px;">
+          <label style="font-size:0.75rem;color:var(--text-muted);">Job Summary</label>
+          <input type="text" id="jobSummary" placeholder="Summary of work" oninput="triggerRecalc()">
+        </div>
+
+        <!-- Line items table -->
+        <div class="table-container">
+          <table id="itemsTable">
+            <thead>
+              <tr>
+                <th style="width:40%;">Description</th>
+                <th style="width:18%;">Kind</th>
+                <th style="width:14%;">Qty</th>
+                <th style="width:16%;">Unit Price</th>
+                <th style="width:12%;text-align:right;">Total</th>
+                <th style="width:30px;"></th>
+              </tr>
+            </thead>
+            <tbody id="itemsBody">
+              <!-- Rendered via JS -->
+            </tbody>
+          </table>
+        </div>
+
+        <div class="table-actions">
+          <button type="button" class="btn btn-secondary" onclick="addEmptyRow()">
+            + Add missing line
+          </button>
+        </div>
+
+        <!-- Warning for unpriced items -->
+        <div id="unpricedAlert" class="unpriced-alert">
+          <strong>Action Required:</strong> <span id="unpricedCount">0</span> item(s) have no price set. Enter a price or check the acceptance box below to export.
+        </div>
+
+        <!-- Totals summary -->
+        <div class="totals-card">
+          <div class="totals-row">
+            <span>Labor:</span>
+            <span id="totLabor">$0.00</span>
+          </div>
+          <div class="totals-row">
+            <span>Materials:</span>
+            <span id="totMaterials">$0.00</span>
+          </div>
+          <div class="totals-row">
+            <span>Subtotal:</span>
+            <span id="totSubtotal">$0.00</span>
+          </div>
+          <div class="totals-row">
+            <span>Tax (<span id="taxRateDisplay">0%</span>):</span>
+            <span id="totTax">$0.00</span>
+          </div>
+          <div class="totals-row grand">
+            <span>Grand Total:</span>
+            <span id="totGrand">$0.00</span>
+          </div>
+        </div>
+
+        <div style="margin-bottom:14px;">
+          <label style="font-size:0.75rem;color:var(--text-muted);">Notes</label>
+          <input type="text" id="jobNotes" placeholder="General observations or notes" oninput="triggerRecalc()">
+        </div>
+
+        <!-- Export bar -->
+        <div class="export-bar">
+          <label class="checkbox-label">
+            <input type="checkbox" id="allowUnpricedCheck" onchange="updateExportState()">
+            <span>Accept unpriced items on quote</span>
+          </label>
+          <button type="button" id="exportBtn" class="btn btn-accent" onclick="exportQuote()">
+            Export Quote (HTML / Print)
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // State
+    let items = [];
+    let unpricedCount = 0;
+    let taxRate = 0.0;
+    let mediaRecorder = null;
+    let audioChunks = [];
+    let recordStartTime = null;
+    let recordTimerInterval = null;
+    let recalcTimer = null;
+    let rates = {};
+
+    // Check secure context for microphone
+    window.addEventListener('DOMContentLoaded', () => {
+      const isSecure = window.isSecureContext && navigator.mediaDevices && navigator.mediaDevices.getUserMedia;
+      if (!isSecure) {
+        document.getElementById('micSection').style.display = 'none';
+        document.getElementById('micNotice').style.display = 'block';
+      }
+      checkStatus();
+      setInterval(checkStatus, 15000);
+      renderTable();
+    });
+
+    async function checkStatus() {
+      try {
+        const res = await fetch('/api/status');
+        if (!res.ok) throw new Error('Status error');
+        const data = await res.json();
+        const badge = document.getElementById('statusBadge');
+        const text = document.getElementById('statusText');
+        if (data.model_ready) {
+          badge.className = 'status-badge status-ready';
+          text.textContent = 'Model Ready (' + (data.model || 'local') + ')';
+        } else {
+          badge.className = 'status-badge status-loading';
+          text.textContent = 'Warming up model...';
+        }
+        if (typeof data.tax === 'number') {
+          taxRate = data.tax;
+          document.getElementById('taxRateDisplay').textContent = Math.round(taxRate * 100) + '%';
+        }
+      } catch (e) {
+        const badge = document.getElementById('statusBadge');
+        const text = document.getElementById('statusText');
+        badge.className = 'status-badge';
+        text.textContent = 'Offline / Ollama Disconnected';
+      }
+    }
+
+    // Audio file selection
+    const audioInput = document.getElementById('audioFileInput');
+    audioInput.addEventListener('change', () => {
+      if (audioInput.files.length > 0) {
+        const file = audioInput.files[0];
+        const lbl = document.getElementById('selectedFileName');
+        lbl.textContent = 'Selected: ' + file.name + ' (' + Math.round(file.size / 1024) + ' KB)';
+        lbl.style.display = 'block';
+        document.getElementById('processBtn').disabled = false;
+      }
+    });
+
+    // MediaRecorder logic
+    async function toggleRecord() {
+      const btn = document.getElementById('recordBtn');
+      const timer = document.getElementById('recordTimer');
+      if (mediaRecorder && mediaRecorder.state === 'recording') {
+        mediaRecorder.stop();
+        btn.textContent = 'Start Recording';
+        btn.className = 'btn btn-secondary';
+        clearInterval(recordTimerInterval);
+        return;
+      }
+
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        audioChunks = [];
+        mediaRecorder = new MediaRecorder(stream);
+        mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
+        mediaRecorder.onstop = () => {
+          const blob = new Blob(audioChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
+          const file = new File([blob], 'recording.webm', { type: blob.type });
+          const dataTransfer = new DataTransfer();
+          dataTransfer.items.add(file);
+          audioInput.files = dataTransfer.files;
+          const lbl = document.getElementById('selectedFileName');
+          lbl.textContent = 'Recorded audio (' + Math.round(blob.size / 1024) + ' KB)';
+          lbl.style.display = 'block';
+          document.getElementById('processBtn').disabled = false;
+          stream.getTracks().forEach(t => t.stop());
+        };
+        mediaRecorder.start();
+        btn.textContent = 'Stop Recording';
+        btn.className = 'btn btn-danger';
+        timer.style.display = 'inline';
+        recordStartTime = Date.now();
+        recordTimerInterval = setInterval(() => {
+          const elapsed = Math.floor((Date.now() - recordStartTime) / 1000);
+          const m = String(Math.floor(elapsed / 60)).padStart(2, '0');
+          const s = String(elapsed % 60).padStart(2, '0');
+          timer.textContent = m + ':' + s;
+        }, 500);
+      } catch (err) {
+        alert('Could not access microphone: ' + err.message);
+      }
+    }
+
+    function showProgress(msg) {
+      const el = document.getElementById('progressState');
+      const txt = document.getElementById('progressMsg');
+      txt.textContent = msg;
+      el.style.display = 'inline-flex';
+    }
+
+    function hideProgress() {
+      document.getElementById('progressState').style.display = 'none';
+    }
+
+    // Process audio file via SSE endpoint
+    async function processAudio() {
+      if (!audioInput.files || audioInput.files.length === 0) return;
+      const file = audioInput.files[0];
+
+      showProgress('Transcribing audio with Whisper...');
+      items = [];
+      renderTable();
+
+      const formData = new FormData();
+      formData.append('audio', file);
+      formData.append('rates', JSON.stringify(rates));
+
+      try {
+        const res = await fetch('/api/extract', {
+          method: 'POST',
+          body: formData
+        });
+        if (!res.ok) throw new Error('Server returned HTTP ' + res.status);
+        await handleSseStream(res);
+      } catch (err) {
+        hideProgress();
+        alert('Extraction failed: ' + err.message);
+      }
+    }
+
+    // Extract from direct transcript text
+    async function extractFromTranscript() {
+      const text = document.getElementById('transcriptText').value.trim();
+      if (!text) {
+        alert('Please enter or dictate a transcript first.');
+        return;
+      }
+      showProgress('Extracting structured quote facts...');
+      items = [];
+      renderTable();
+
+      try {
+        const res = await fetch('/api/extract', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ transcript: text, rates: rates })
+        });
+        if (!res.ok) throw new Error('Server returned HTTP ' + res.status);
+        await handleSseStream(res);
+      } catch (err) {
+        hideProgress();
+        alert('Extraction failed: ' + err.message);
+      }
+    }
+
+    // Process Server-Sent Events from response reader
+    async function handleSseStream(response) {
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder('utf-8');
+      let buffer = '';
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        const parts = buffer.split('\n\n');
+        buffer = parts.pop(); // keep remainder
+
+        for (const block of parts) {
+          if (!block.trim()) continue;
+          let eventType = 'message';
+          let eventData = '';
+          const lines = block.split('\n');
+          for (const line of lines) {
+            if (line.startsWith('event:')) {
+              eventType = line.slice(6).trim();
+            } else if (line.startsWith('data:')) {
+              eventData = line.slice(5).trim();
+            }
+          }
+
+          if (eventType === 'transcript') {
+            const data = JSON.parse(eventData);
+            document.getElementById('transcriptText').value = data.transcript || '';
+            showProgress('Transcribed! Streaming quote line items...');
+          } else if (eventType === 'item') {
+            const data = JSON.parse(eventData);
+            items.push(data.item);
+            renderTable();
+            triggerRecalc();
+          } else if (eventType === 'done') {
+            const data = JSON.parse(eventData);
+            if (data.job) {
+              if (data.job.customer) document.getElementById('custName').value = data.job.customer;
+              if (data.job.address) document.getElementById('custAddr').value = data.job.address;
+              if (data.job.job_summary) document.getElementById('jobSummary').value = data.job.job_summary;
+              if (data.job.notes) document.getElementById('jobNotes').value = data.job.notes;
+            }
+            hideProgress();
+            triggerRecalc();
+          } else if (eventType === 'error') {
+            const data = JSON.parse(eventData);
+            hideProgress();
+            alert('Error: ' + data.error);
+          }
+        }
+      }
+      hideProgress();
+    }
+
+    // Render line items table
+    function renderTable() {
+      const tbody = document.getElementById('itemsBody');
+      tbody.innerHTML = '';
+      unpricedCount = 0;
+
+      items.forEach((it, idx) => {
+        const isUnpriced = (it.unit_price === null || it.unit_price === undefined || it.unit_price === '');
+        if (isUnpriced) unpricedCount++;
+
+        const tr = document.createElement('tr');
+        if (isUnpriced) tr.className = 'unpriced';
+
+        // Description
+        const tdDesc = document.createElement('td');
+        const descInput = document.createElement('input');
+        descInput.type = 'text';
+        descInput.value = it.description || '';
+        descInput.oninput = (e) => { items[idx].description = e.target.value; triggerRecalc(); };
+        tdDesc.appendChild(descInput);
+        if (isUnpriced) {
+          const badge = document.createElement('span');
+          badge.className = 'badge-warn';
+          badge.textContent = 'Needs price';
+          tdDesc.appendChild(badge);
+        }
+        tr.appendChild(tdDesc);
+
+        // Kind (Labor / Material)
+        const tdKind = document.createElement('td');
+        const kindSelect = document.createElement('select');
+        kindSelect.innerHTML = '<option value="labor">Labor</option><option value="material">Material</option>';
+        kindSelect.value = (it.kind === 'labor') ? 'labor' : 'material';
+        kindSelect.onchange = (e) => { items[idx].kind = e.target.value; triggerRecalc(); };
+        tdKind.appendChild(kindSelect);
+        tr.appendChild(tdKind);
+
+        // Qty
+        const tdQty = document.createElement('td');
+        const qtyInput = document.createElement('input');
+        qtyInput.type = 'number';
+        qtyInput.step = 'any';
+        qtyInput.value = it.qty !== undefined ? it.qty : 1;
+        qtyInput.oninput = (e) => { items[idx].qty = parseFloat(e.target.value) || 0; triggerRecalc(); };
+        tdQty.appendChild(qtyInput);
+        tr.appendChild(tdQty);
+
+        // Unit Price
+        const tdPrice = document.createElement('td');
+        const priceInput = document.createElement('input');
+        priceInput.type = 'number';
+        priceInput.step = '0.01';
+        priceInput.placeholder = 'none';
+        priceInput.value = it.unit_price !== null && it.unit_price !== undefined ? it.unit_price : '';
+        priceInput.oninput = (e) => {
+          const val = e.target.value.trim();
+          items[idx].unit_price = val === '' ? null : (parseFloat(val) || 0);
+          triggerRecalc();
+        };
+        tdPrice.appendChild(priceInput);
+        tr.appendChild(tdPrice);
+
+        // Line Total
+        const tdTotal = document.createElement('td');
+        tdTotal.style.textAlign = 'right';
+        tdTotal.style.fontWeight = '500';
+        tdTotal.textContent = it.total !== null && it.total !== undefined ? ('$' + it.total.toFixed(2)) : (isUnpriced ? '?' : '$0.00');
+        tr.appendChild(tdTotal);
+
+        // Delete button
+        const tdDel = document.createElement('td');
+        const delBtn = document.createElement('button');
+        delBtn.type = 'button';
+        delBtn.className = 'btn btn-secondary';
+        delBtn.style.padding = '2px 6px';
+        delBtn.style.fontSize = '0.75rem';
+        delBtn.textContent = '✕';
+        delBtn.onclick = () => { items.splice(idx, 1); renderTable(); triggerRecalc(); };
+        tdDel.appendChild(delBtn);
+        tr.appendChild(tdDel);
+
+        tbody.appendChild(tr);
+      });
+
+      // Update unpriced warning and export button
+      const alertBox = document.getElementById('unpricedAlert');
+      if (unpricedCount > 0) {
+        alertBox.style.display = 'block';
+        document.getElementById('unpricedCount').textContent = unpricedCount;
+      } else {
+        alertBox.style.display = 'none';
+      }
+      updateExportState();
+    }
+
+    function addEmptyRow() {
+      items.push({
+        description: '',
+        kind: 'material',
+        qty: 1.0,
+        unit_price: null,
+        total: null
+      });
+      renderTable();
+      // focus on the new row's description
+      const inputs = document.querySelectorAll('#itemsBody tr:last-child input');
+      if (inputs.length > 0) inputs[0].focus();
+    }
+
+    function updateExportState() {
+      const allowUnpriced = document.getElementById('allowUnpricedCheck').checked;
+      const exportBtn = document.getElementById('exportBtn');
+      if (unpricedCount > 0 && !allowUnpriced) {
+        exportBtn.style.opacity = '0.5';
+      } else {
+        exportBtn.style.opacity = '1.0';
+      }
+    }
+
+    // Trigger recalculation on Python backend
+    function triggerRecalc() {
+      clearTimeout(recalcTimer);
+      recalcTimer = setTimeout(async () => {
+        try {
+          const res = await fetch('/api/recalculate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              items: items,
+              rates: rates,
+              tax_rate: taxRate
+            })
+          });
+          if (!res.ok) return;
+          const data = await res.json();
+          if (data.items) {
+            // Update line totals
+            data.items.forEach((it, idx) => {
+              if (items[idx]) {
+                items[idx].total = it.total;
+                items[idx].unit_price = it.unit_price;
+              }
+            });
+            // Update table without blowing away active focus
+            updateTotalsDisplay(data.totals);
+            updateTableTotalsOnly();
+          }
+        } catch (e) {
+          console.error('Recalc error:', e);
+        }
+      }, 150);
+    }
+
+    function updateTableTotalsOnly() {
+      const rows = document.querySelectorAll('#itemsBody tr');
+      unpricedCount = 0;
+      rows.forEach((tr, idx) => {
+        const it = items[idx];
+        if (!it) return;
+        const isUnpriced = (it.unit_price === null || it.unit_price === undefined || it.unit_price === '');
+        if (isUnpriced) unpricedCount++;
+        if (isUnpriced) tr.classList.add('unpriced');
+        else tr.classList.remove('unpriced');
+
+        const totalCell = tr.children[4];
+        if (totalCell) {
+          totalCell.textContent = it.total !== null && it.total !== undefined ? ('$' + it.total.toFixed(2)) : (isUnpriced ? '?' : '$0.00');
+        }
+      });
+      const alertBox = document.getElementById('unpricedAlert');
+      if (unpricedCount > 0) {
+        alertBox.style.display = 'block';
+        document.getElementById('unpricedCount').textContent = unpricedCount;
+      } else {
+        alertBox.style.display = 'none';
+      }
+      updateExportState();
+    }
+
+    function updateTotalsDisplay(tot) {
+      if (!tot) return;
+      document.getElementById('totLabor').textContent = '$' + (tot.labor || 0).toFixed(2);
+      document.getElementById('totMaterials').textContent = '$' + (tot.materials || 0).toFixed(2);
+      document.getElementById('totSubtotal').textContent = '$' + (tot.subtotal || 0).toFixed(2);
+      document.getElementById('totTax').textContent = '$' + (tot.tax || 0).toFixed(2);
+      document.getElementById('totGrand').textContent = '$' + (tot.total || 0).toFixed(2);
+    }
+
+    // Export quote to printable HTML
+    async function exportQuote() {
+      const allowUnpriced = document.getElementById('allowUnpricedCheck').checked;
+      if (unpricedCount > 0 && !allowUnpriced) {
+        alert('Cannot export: ' + unpricedCount + ' item(s) have no price set. Please enter prices or check "Accept unpriced items on quote" to proceed.');
+        return;
+      }
+
+      const payload = {
+        customer: document.getElementById('custName').value.trim(),
+        address: document.getElementById('custAddr').value.trim(),
+        job_summary: document.getElementById('jobSummary').value.trim(),
+        notes: document.getElementById('jobNotes').value.trim(),
+        items: items,
+        rates: rates,
+        tax_rate: taxRate,
+        allow_unpriced: allowUnpriced
+      };
+
+      try {
+        const res = await fetch('/api/export', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (!res.ok) {
+          const err = await res.json();
+          alert('Export blocked: ' + (err.error || 'Server error'));
+          return;
+        }
+        const htmlText = await res.text();
+        const blob = new Blob([htmlText], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        window.open(url, '_blank');
+      } catch (err) {
+        alert('Export failed: ' + err.message);
+      }
+    }
+  </script>
+</body>
+</html>

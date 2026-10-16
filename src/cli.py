@@ -26,6 +26,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--model", default=Settings.llm_model, help="Ollama model name")
     p.add_argument("--host", default=Settings.ollama_host)
     p.add_argument("--out", default="output/quote.html")
+    p.add_argument("--serve", action="store_true", help="start local web UI server")
+    p.add_argument("--port", type=int, default=5000, help="port for web server (default 5000)")
+    p.add_argument("--bind", default="0.0.0.0", help="host address to bind (default 0.0.0.0)")
     p.add_argument("--version", action="version", version=f"jobtalk {__version__}")
     return p
 
@@ -35,6 +38,25 @@ def main(argv: list[str] | None = None) -> int:
     settings = Settings(llm_model=args.model, ollama_host=args.host)
     rates = load_rates(args.rates)
 
+    if args.serve:
+        from jobtalk.web import run_server
+        print(f"Starting JobTalk Web UI on http://{args.bind}:{args.port}")
+        print("Point your browser to the URL above. For phone use, connect to the same Wi-Fi.")
+        server = run_server(
+            host=args.bind,
+            port=args.port,
+            settings=settings,
+            rates=rates,
+            business=args.business,
+            tax_rate=args.tax,
+        )
+        try:
+            server.serve_forever()
+        except KeyboardInterrupt:
+            print("\nShutting down server.")
+            server.server_close()
+        return 0
+
     try:
         if args.demo:
             transcript, job = DEMO_TRANSCRIPT, Job.from_dict(DEMO_JOB)
@@ -43,7 +65,7 @@ def main(argv: list[str] | None = None) -> int:
             transcript = path.read_text() if path.suffix == ".txt" else transcribe(path, settings)
             job = extract_job(transcript, rates, settings)
         else:
-            build_parser().error("provide an input file or use --demo")
+            build_parser().error("provide an input file, use --demo, or start the server with --serve")
     except RuntimeError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1

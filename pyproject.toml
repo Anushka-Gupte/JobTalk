@@ -13,7 +13,7 @@ dependencies = []
 
 [project.optional-dependencies]
 audio = ["faster-whisper>=1.0"]
-dev = ["pytest>=8", "ruff>=0.5"]
+dev = ["pytest>=8", "pytest-timeout>=2.3", "ruff>=0.5"]
 
 [project.scripts]
 jobtalk = "jobtalk.cli:main"
@@ -28,6 +28,8 @@ jobtalk = ["templates/*.html"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
+timeout = 30
+timeout_method = "thread"
 
 [tool.ruff]
 line-length = 100
