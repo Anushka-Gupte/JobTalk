@@ -14,7 +14,7 @@ from backend.app import create_app
 @pytest.fixture
 def fake_stream():
     def _stream(transcript: str, user_rates: dict, settings: Settings):
-        yield ("item", LineItem(description="Test Labor", kind="labor", qty=1.0, unit_price=90.0))
+        yield ("item", LineItem(description="Test Labour", kind="labor", qty=1.0, unit_price=90.0))
         yield ("item", LineItem(description="P-trap", kind="material", qty=1.0, unit_price=15.0))
         done_payload = json.dumps({
             "customer": "Jane Smith",
@@ -22,7 +22,7 @@ def fake_stream():
             "job_summary": "Fixed leak",
             "notes": "Done",
             "items": [
-                {"description": "Test Labor", "kind": "labor", "qty": 1.0, "unit_price": 90.0},
+                {"description": "Test Labour", "kind": "labor", "qty": 1.0, "unit_price": 90.0},
                 {"description": "P-trap", "kind": "material", "qty": 1.0, "unit_price": 15.0},
             ],
         })
@@ -45,6 +45,8 @@ def client(fake_stream, fake_transcribe):
         config_overrides={
             "business_name": "Acme Plumbing",
             "tax_rate": 0.05,
+            "currency_code": "INR",
+            "currency_symbol": "₹",
             "upload_max_size_mb": 1,
         },
         stream_extract_fn=fake_stream,
@@ -68,6 +70,8 @@ def test_index_serves_html_and_has_no_external_dependencies(client):
     assert "JobTalk" in html
     assert 'accept="audio/*"' in html
     assert "Add missing line" in html
+    assert "GST" in html
+    assert "Labour" in html
 
 
 def test_static_assets_served_locally(client):
@@ -88,13 +92,18 @@ def test_api_health_endpoint(client):
     assert data["model"] == "qwen2.5:1.5b"
     assert data["business"] == "Acme Plumbing"
     assert data["tax"] == 0.05
+    assert data["tax_label"] == "GST"
+    assert data["currency_code"] == "INR"
+    assert data["currency_symbol"] == "₹"
 
 
 def test_api_recalculate_computes_totals_in_python(client):
     payload = {
         "items": [
-            {"description": "Labor", "kind": "labor", "qty": 2.5, "unit_price": 90.0},
-            {"description": "Shutoff valve", "kind": "material", "qty": 2.0, "unit_price": 25.0},
+            # Use quantities that produce an integer total: 2*100=200 labour + 1*100=100 material
+            # Subtotal=300, tax=10%=30, raw_total=330.0 (already integer), round_off=0.0
+            {"description": "Labour", "kind": "labor", "qty": 2.0, "unit_price": 100.0},
+            {"description": "Shutoff valve", "kind": "material", "qty": 1.0, "unit_price": 100.0},
             {"description": "Unpriced fitting", "kind": "material", "qty": 1.0, "unit_price": None},
         ],
         "tax_rate": 0.10,
@@ -104,17 +113,20 @@ def test_api_recalculate_computes_totals_in_python(client):
     data = resp.json()
 
     totals = data["totals"]
-    # Labor: 2.5 * 90 = 225.0
-    # Materials: 2 * 25 = 50.0
-    # Subtotal: 275.0
-    # Tax: 275.0 * 0.10 = 27.50
-    # Total: 302.50
-    assert totals["labor"] == 225.0
-    assert totals["materials"] == 50.0
-    assert totals["subtotal"] == 275.0
-    assert totals["tax"] == 27.50
-    assert totals["total"] == 302.50
+    # Labour: 2 * 100 = 200.0
+    # Materials: 1 * 100 = 100.0
+    # Subtotal: 300.0
+    # Tax: 300.0 * 0.10 = 30.0
+    # Total: 330.0 (integer, round_off = 0.0)
+    assert totals["labor"] == 200.0
+    assert totals["materials"] == 100.0
+    assert totals["subtotal"] == 300.0
+    assert totals["tax"] == 30.0
+    assert totals["total"] == 330.0
+    assert totals["round_off"] == 0.0
     assert totals["unpriced"] == 1
+    assert totals["formatted_total"] == "₹330.00"
+    assert totals["formatted_subtotal"] == "₹300.00"
 
 
 def test_api_export_blocks_unpriced_when_not_accepted(client):
@@ -124,7 +136,7 @@ def test_api_export_blocks_unpriced_when_not_accepted(client):
         "job_summary": "Replaced valve",
         "notes": "",
         "items": [
-            {"description": "Labor", "kind": "labor", "qty": 1.0, "unit_price": 90.0},
+            {"description": "Labour", "kind": "labor", "qty": 1.0, "unit_price": 90.0},
             {"description": "Mystery fitting", "kind": "material", "qty": 1.0, "unit_price": None},
         ],
         "allow_unpriced": False,
@@ -141,7 +153,7 @@ def test_api_export_succeeds_when_allow_unpriced_checked(client):
         "job_summary": "Replaced valve",
         "notes": "",
         "items": [
-            {"description": "Labor", "kind": "labor", "qty": 1.0, "unit_price": 90.0},
+            {"description": "Labour", "kind": "labor", "qty": 1.0, "unit_price": 90.0},
             {"description": "Mystery fitting", "kind": "material", "qty": 1.0, "unit_price": None},
         ],
         "allow_unpriced": True,
@@ -154,6 +166,8 @@ def test_api_export_succeeds_when_allow_unpriced_checked(client):
     assert "Acme Plumbing" in html
     assert "John Doe" in html
     assert "needs price" in html
+    assert "₹" in html
+    assert "GST" in html
 
 
 def test_api_extract_streams_sse_from_json(client):
@@ -165,7 +179,7 @@ def test_api_extract_streams_sse_from_json(client):
     assert "event: transcript" in content
     assert "Repaired sink" in content
     assert "event: item" in content
-    assert "Test Labor" in content
+    assert "Test Labour" in content
     assert "P-trap" in content
     assert "event: done" in content
     assert "Jane Smith" in content
@@ -215,3 +229,109 @@ def test_no_outbound_network_calls_outside_localhost(client, monkeypatch):
     )
 
     assert len(outbound_calls) == 0, f"Found illegal outbound network calls: {outbound_calls}"
+
+
+def test_api_export_blocks_unconfirmed_price_flags(client):
+    payload = {
+        "customer": "John Doe",
+        "address": "123 Main St",
+        "job_summary": "Replaced valve",
+        "notes": "",
+        "items": [
+            {
+                "description": "Labour",
+                "kind": "labor",
+                "qty": 1.0,
+                "unit_price": 90.0,
+                "price_flag": "price not found in recording, confirm",
+            },
+        ],
+        "allow_unpriced": False,
+    }
+    resp = client.post("/api/export", json=payload)
+    assert resp.status_code == 400
+    assert "prices not found in recording" in resp.json()["detail"]
+
+
+def test_api_extract_broken_json_returns_error_event_and_keeps_transcript():
+    """When model output is completely broken, transcript is still delivered and a clean error event is emitted."""
+    from backend.app import create_app
+
+    def broken_extract(transcript, rates, settings):
+        # Yields no valid line items and invalid final string
+        yield ("token", "broken model output that is not json")
+        yield ("done", "broken model output that is not json")
+
+    app = create_app(
+        stream_extract_fn=broken_extract,
+        transcribe_fn=lambda path, s: "Customer spoken transcript to preserve",
+        warmup=False,
+    )
+    with TestClient(app) as test_client:
+        resp = test_client.post("/api/extract", json={"transcript": "Customer spoken transcript to preserve"})
+        assert resp.status_code == 200
+        text = resp.text
+        # Transcript event was sent first
+        assert "event: transcript" in text
+        assert "Customer spoken transcript to preserve" in text
+        # Error event was sent on failure
+        assert "event: error" in text
+        assert "Couldn't read that recording, try again" in text
+
+
+def test_api_export_omits_dropped_items_unless_restored(client):
+    payload = {
+        "customer": "Rohan",
+        "address": "MG Road",
+        "job_summary": "Bathroom plumbing",
+        "notes": "",
+        "items": [
+            {
+                "description": "old-style brass tap",
+                "kind": "material",
+                "qty": 1.0,
+                "unit_price": 600.0,
+                "dropped_reason": "looks like a removed/old item",
+            },
+            {
+                "description": "PVC connector",
+                "kind": "material",
+                "qty": 2.0,
+                "unit_price": 50.0,
+                "dropped_reason": None,
+            },
+        ],
+        "allow_unpriced": False,
+    }
+    # Unrestored: old-style brass tap must NOT be in the exported HTML
+    resp = client.post("/api/export", json=payload)
+    assert resp.status_code == 200
+    html = resp.text
+    assert "PVC connector" in html
+    assert "old-style brass tap" not in html
+
+    # Restored: user sets dropped_reason to None
+    payload["items"][0]["dropped_reason"] = None
+    resp2 = client.post("/api/export", json=payload)
+    assert resp2.status_code == 200
+    html2 = resp2.text
+    assert "PVC connector" in html2
+    assert "old-style brass tap" in html2
+
+
+def test_api_recalculate_returns_missing_items_reminder(client):
+    transcript = "Replaced 3 switches. Installed 2 lights. Fixed 1 fan."
+    # 3 number phrases in transcript, but only 1 item in items list
+    resp = client.post(
+        "/api/recalculate",
+        json={
+            "transcript": transcript,
+            "items": [
+                {"description": "Switches", "kind": "material", "qty": 3, "unit_price": 100},
+            ],
+        },
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["missing_items_reminder"] == "2 items may be missing, check the transcript"
+

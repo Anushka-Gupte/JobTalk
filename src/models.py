@@ -17,6 +17,8 @@ class LineItem:
     kind: str = "material"  # "labor" | "material"
     qty: float = 1.0
     unit_price: float | None = None
+    price_flag: str | None = None
+    dropped_reason: str | None = None
 
     @property
     def total(self) -> float | None:
@@ -44,6 +46,8 @@ class Job:
                 kind=kind,
                 qty=_num(raw.get("qty"), 1.0),
                 unit_price=_num(raw.get("unit_price")),
+                price_flag=raw.get("price_flag"),
+                dropped_reason=raw.get("dropped_reason"),
             ))
 
         def _str_field(k: str) -> str:
@@ -58,3 +62,6 @@ class Totals:
     tax: float
     total: float
     unpriced: int
+    cgst: float = 0.0   # half of tax when gst_split=True, else 0
+    sgst: float = 0.0   # half of tax when gst_split=True, else 0
+    round_off: float = 0.0

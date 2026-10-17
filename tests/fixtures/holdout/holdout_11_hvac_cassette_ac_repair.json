@@ -1,0 +1,45 @@
+{
+  "id": "holdout_11",
+  "trade": "hvac",
+  "transcript": "Cassette AC repair completed at Anand Diagnostic Lab, 12 Commercial Complex MG Road. Drainage pump replacement was needed, so installed one new condensate drain pump for two thousand eight hundred rupees. Labour was three hours, teen ghante. Also added five meters flexible drain pipe for teen sau rupaye. Air filter deep cleaning for paanch sau rupaye.",
+  "rates": {
+    "labor_hourly": 600,
+    "items": {
+      "drain pump": 2800,
+      "drain pipe": 300,
+      "filter cleaning": 500
+    }
+  },
+  "expected": {
+    "customer": "Anand Diagnostic Lab",
+    "address": "12 Commercial Complex MG Road",
+    "job_summary": "Cassette AC drain pump and filter service",
+    "notes": "Checked pump float switch and sensor.",
+    "items": [
+      {
+        "description": "Condensate drain pump",
+        "kind": "material",
+        "qty": 1.0,
+        "unit_price": 2800.0
+      },
+      {
+        "description": "Labor",
+        "kind": "labor",
+        "qty": 3.0,
+        "unit_price": 600.0
+      },
+      {
+        "description": "Flexible drain pipe",
+        "kind": "material",
+        "qty": 1.0,
+        "unit_price": 300.0
+      },
+      {
+        "description": "Air filter deep cleaning",
+        "kind": "labor",
+        "qty": 1.0,
+        "unit_price": 500.0
+      }
+    ]
+  }
+}

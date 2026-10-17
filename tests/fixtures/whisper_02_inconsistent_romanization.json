@@ -1,0 +1,38 @@
+{
+  "id": "whisper_02",
+  "trade": "electrical",
+  "transcript": "Customer Vikram Singh at 22 Park Road. Electrician work kiya. Paanch sau rupaye labour charges. Phir 5 sau ka ek MCB lagaya distribution board mein, aur ek wire bundle lagaya jo tha panch sau rupaye ka. Job summary: MCB and wire replacement.",
+  "rates": {
+    "labor_hourly": 500,
+    "items": {
+      "mcb": 500,
+      "wire bundle": 500
+    }
+  },
+  "expected": {
+    "customer": "Vikram Singh",
+    "address": "22 Park Road",
+    "job_summary": "MCB and wire replacement",
+    "notes": "",
+    "items": [
+      {
+        "description": "Labor",
+        "kind": "labor",
+        "qty": 1.0,
+        "unit_price": 500.0
+      },
+      {
+        "description": "MCB",
+        "kind": "material",
+        "qty": 1.0,
+        "unit_price": 500.0
+      },
+      {
+        "description": "Wire bundle",
+        "kind": "material",
+        "qty": 1.0,
+        "unit_price": 500.0
+      }
+    ]
+  }
+}

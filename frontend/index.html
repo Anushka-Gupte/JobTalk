@@ -106,6 +106,11 @@
           <input type="text" id="jobSummary" placeholder="Summary of work" oninput="triggerRecalc()">
         </div>
 
+        <!-- Reminder for potentially missing items -->
+        <div id="missingItemsAlert" class="missing-items-alert">
+          <span id="missingItemsText"></span>
+        </div>
+
         <!-- Line items table -->
         <div class="table-container">
           <table id="itemsTable">
@@ -114,8 +119,8 @@
                 <th style="width:40%;">Description</th>
                 <th style="width:18%;">Kind</th>
                 <th style="width:14%;">Qty</th>
-                <th style="width:16%;">Unit Price</th>
-                <th style="width:12%;text-align:right;">Total</th>
+                <th style="width:16%;">Rate</th>
+                <th style="width:12%;text-align:right;">Amount</th>
                 <th style="width:30px;"></th>
               </tr>
             </thead>
@@ -131,6 +136,12 @@
           </button>
         </div>
 
+        <!-- Dropped items section (greyed out with restore button) -->
+        <div id="droppedItemsSection" class="dropped-items-section">
+          <div class="dropped-items-header">Dropped items (looks like removed/old parts, excluded from quote):</div>
+          <div id="droppedItemsList"></div>
+        </div>
+
         <!-- Warning for unpriced items -->
         <div id="unpricedAlert" class="unpriced-alert">
           <strong>Action Required:</strong> <span id="unpricedCount">0</span> item(s) have no price set. Enter a price or check the acceptance box below to export.
@@ -139,24 +150,36 @@
         <!-- Totals summary -->
         <div class="totals-card">
           <div class="totals-row">
-            <span>Labor:</span>
-            <span id="totLabor">$0.00</span>
+            <span>Labour:</span>
+            <span id="totLabor">₹0.00</span>
           </div>
           <div class="totals-row">
             <span>Materials:</span>
-            <span id="totMaterials">$0.00</span>
+            <span id="totMaterials">₹0.00</span>
           </div>
           <div class="totals-row">
             <span>Subtotal:</span>
-            <span id="totSubtotal">$0.00</span>
+            <span id="totSubtotal">₹0.00</span>
           </div>
-          <div class="totals-row">
-            <span>Tax (<span id="taxRateDisplay">0%</span>):</span>
-            <span id="totTax">$0.00</span>
+          <div class="totals-row" id="singleTaxRow">
+            <span><span id="taxLabelDisplay">GST</span> (<span id="taxRateDisplay">18%</span>):</span>
+            <span id="totTax">₹0.00</span>
+          </div>
+          <div class="totals-row" id="cgstRow" style="display:none;">
+            <span>CGST (<span id="cgstRateDisplay">9%</span>):</span>
+            <span id="totCgst">₹0.00</span>
+          </div>
+          <div class="totals-row" id="sgstRow" style="display:none;">
+            <span>SGST (<span id="sgstRateDisplay">9%</span>):</span>
+            <span id="totSgst">₹0.00</span>
+          </div>
+          <div class="totals-row" id="roundOffRow" style="display:none;">
+            <span>Round-off:</span>
+            <span id="totRoundOff">₹0.00</span>
           </div>
           <div class="totals-row grand">
             <span>Grand Total:</span>
-            <span id="totGrand">$0.00</span>
+            <span id="totGrand">₹0.00</span>
           </div>
         </div>
 

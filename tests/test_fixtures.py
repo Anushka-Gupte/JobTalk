@@ -10,7 +10,7 @@ FIXTURES_DIR = Path(__file__).parent / "fixtures"
 @pytest.fixture
 def train_fixture_files():
     files = sorted(FIXTURES_DIR.glob("*.json"))
-    assert len(files) == 10, f"Expected 10 train fixtures, found {len(files)}"
+    assert len(files) == 18, f"Expected 18 train fixtures, found {len(files)}"
     return files
 
 
@@ -18,7 +18,7 @@ def train_fixture_files():
 def holdout_fixture_files():
     holdout_dir = FIXTURES_DIR / "holdout"
     files = sorted(holdout_dir.glob("*.json"))
-    assert len(files) == 8, f"Expected 8 holdout fixtures, found {len(files)}"
+    assert len(files) == 11, f"Expected 11 holdout fixtures, found {len(files)}"
     return files
 
 

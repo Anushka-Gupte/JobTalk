@@ -1,0 +1,45 @@
+{
+  "id": "plumbing_06",
+  "trade": "plumbing",
+  "transcript": "Submersible pump replacement done at Vikram Singh's Farmhouse 8, Chattarpur. Ek 1 HP Kirloskar submersible pump lagaya, seven thousand two hundred rupees ka. Two hours labor, do ghante ka kaam tha. One heavy-duty check valve for 450 rupees, and forty feet of delivery PVC pipe for 800 rupees.",
+  "rates": {
+    "labor_hourly": 600,
+    "items": {
+      "submersible pump": 7200,
+      "check valve": 450,
+      "pvc pipe": 800
+    }
+  },
+  "expected": {
+    "customer": "Vikram Singh",
+    "address": "Farmhouse 8, Chattarpur",
+    "job_summary": "Replaced 1 HP submersible pump",
+    "notes": "Delivery pipe and check valve replaced.",
+    "items": [
+      {
+        "description": "1 HP Kirloskar submersible pump",
+        "kind": "material",
+        "qty": 1.0,
+        "unit_price": 7200.0
+      },
+      {
+        "description": "Labor",
+        "kind": "labor",
+        "qty": 2.0,
+        "unit_price": 600.0
+      },
+      {
+        "description": "Heavy-duty check valve",
+        "kind": "material",
+        "qty": 1.0,
+        "unit_price": 450.0
+      },
+      {
+        "description": "Delivery PVC pipe",
+        "kind": "material",
+        "qty": 40.0,
+        "unit_price": 800.0
+      }
+    ]
+  }
+}

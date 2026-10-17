@@ -1,0 +1,45 @@
+{
+  "id": "electrical_05",
+  "trade": "electrical",
+  "transcript": "Inverter and battery setup at Amit Verma, 22 Kailash Hills. Supplied one Luminous 150Ah tubular battery, eleven thousand rupees. One inverter trolley for seven hundred. Dedh ghanta laga, that is one and a half hours labour. Also made new battery terminal cables for three hundred rupees.",
+  "rates": {
+    "labor_hourly": 500,
+    "items": {
+      "tubular battery": 11000,
+      "inverter trolley": 700,
+      "battery cables": 300
+    }
+  },
+  "expected": {
+    "customer": "Amit Verma",
+    "address": "22 Kailash Hills",
+    "job_summary": "Setup inverter battery and trolley",
+    "notes": "Provided new battery cables.",
+    "items": [
+      {
+        "description": "Luminous 150Ah tubular battery",
+        "kind": "material",
+        "qty": 1.0,
+        "unit_price": 11000.0
+      },
+      {
+        "description": "Inverter trolley",
+        "kind": "material",
+        "qty": 1.0,
+        "unit_price": 700.0
+      },
+      {
+        "description": "Labor",
+        "kind": "labor",
+        "qty": 1.5,
+        "unit_price": 500.0
+      },
+      {
+        "description": "Battery terminal cables",
+        "kind": "material",
+        "qty": 1.0,
+        "unit_price": 300.0
+      }
+    ]
+  }
+}

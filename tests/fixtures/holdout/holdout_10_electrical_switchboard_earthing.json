@@ -1,0 +1,45 @@
+{
+  "id": "holdout_10",
+  "trade": "electrical",
+  "transcript": "Electrical repair at Dr. Manisha Roy, 57 Park Street Kolkata. Repaired main earthing pit with 10 kg chemical earthing compound for eight hundred rupees. Replaced modular 8-module switchboard with Roma switches for nine hundred and fifty rupees. Labour was do ghante ka kaam, two hours. Copper earth wire run for teen sau rupaye.",
+  "rates": {
+    "labor_hourly": 500,
+    "items": {
+      "earthing compound": 800,
+      "switchboard": 950,
+      "copper earth wire": 300
+    }
+  },
+  "expected": {
+    "customer": "Dr. Manisha Roy",
+    "address": "57 Park Street Kolkata",
+    "job_summary": "Earthing repair and modular switchboard replacement",
+    "notes": "Verified earth resistance under 2 ohms.",
+    "items": [
+      {
+        "description": "Chemical earthing compound 10 kg",
+        "kind": "material",
+        "qty": 1.0,
+        "unit_price": 800.0
+      },
+      {
+        "description": "Modular 8-module Roma switchboard",
+        "kind": "material",
+        "qty": 1.0,
+        "unit_price": 950.0
+      },
+      {
+        "description": "Labor",
+        "kind": "labor",
+        "qty": 2.0,
+        "unit_price": 500.0
+      },
+      {
+        "description": "Copper earth wire",
+        "kind": "material",
+        "qty": 1.0,
+        "unit_price": 300.0
+      }
+    ]
+  }
+}

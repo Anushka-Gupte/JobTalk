@@ -444,24 +444,24 @@
         <!-- Totals summary -->
         <div class="totals-card">
           <div class="totals-row">
-            <span>Labor:</span>
-            <span id="totLabor">$0.00</span>
+            <span>Labour:</span>
+            <span id="totLabor">₹0.00</span>
           </div>
           <div class="totals-row">
             <span>Materials:</span>
-            <span id="totMaterials">$0.00</span>
+            <span id="totMaterials">₹0.00</span>
           </div>
           <div class="totals-row">
             <span>Subtotal:</span>
-            <span id="totSubtotal">$0.00</span>
+            <span id="totSubtotal">₹0.00</span>
           </div>
           <div class="totals-row">
-            <span>Tax (<span id="taxRateDisplay">0%</span>):</span>
-            <span id="totTax">$0.00</span>
+            <span>GST (<span id="taxRateDisplay">18%</span>):</span>
+            <span id="totTax">₹0.00</span>
           </div>
           <div class="totals-row grand">
             <span>Grand Total:</span>
-            <span id="totGrand">$0.00</span>
+            <span id="totGrand">₹0.00</span>
           </div>
         </div>
 
@@ -740,7 +740,7 @@
         // Kind (Labor / Material)
         const tdKind = document.createElement('td');
         const kindSelect = document.createElement('select');
-        kindSelect.innerHTML = '<option value="labor">Labor</option><option value="material">Material</option>';
+        kindSelect.innerHTML = '<option value="labor">Labour</option><option value="material">Material</option>';
         kindSelect.value = (it.kind === 'labor') ? 'labor' : 'material';
         kindSelect.onchange = (e) => { items[idx].kind = e.target.value; triggerRecalc(); };
         tdKind.appendChild(kindSelect);
@@ -775,7 +775,7 @@
         const tdTotal = document.createElement('td');
         tdTotal.style.textAlign = 'right';
         tdTotal.style.fontWeight = '500';
-        tdTotal.textContent = it.total !== null && it.total !== undefined ? ('$' + it.total.toFixed(2)) : (isUnpriced ? '?' : '$0.00');
+        tdTotal.textContent = it.total !== null && it.total !== undefined ? ('₹' + it.total.toFixed(2)) : (isUnpriced ? '?' : '₹0.00');
         tr.appendChild(tdTotal);
 
         // Delete button
@@ -875,7 +875,7 @@
 
         const totalCell = tr.children[4];
         if (totalCell) {
-          totalCell.textContent = it.total !== null && it.total !== undefined ? ('$' + it.total.toFixed(2)) : (isUnpriced ? '?' : '$0.00');
+          totalCell.textContent = it.total !== null && it.total !== undefined ? ('₹' + it.total.toFixed(2)) : (isUnpriced ? '?' : '₹0.00');
         }
       });
       const alertBox = document.getElementById('unpricedAlert');
@@ -890,11 +890,11 @@
 
     function updateTotalsDisplay(tot) {
       if (!tot) return;
-      document.getElementById('totLabor').textContent = '$' + (tot.labor || 0).toFixed(2);
-      document.getElementById('totMaterials').textContent = '$' + (tot.materials || 0).toFixed(2);
-      document.getElementById('totSubtotal').textContent = '$' + (tot.subtotal || 0).toFixed(2);
-      document.getElementById('totTax').textContent = '$' + (tot.tax || 0).toFixed(2);
-      document.getElementById('totGrand').textContent = '$' + (tot.total || 0).toFixed(2);
+      document.getElementById('totLabor').textContent = '₹' + (tot.labor || 0).toFixed(2);
+      document.getElementById('totMaterials').textContent = '₹' + (tot.materials || 0).toFixed(2);
+      document.getElementById('totSubtotal').textContent = '₹' + (tot.subtotal || 0).toFixed(2);
+      document.getElementById('totTax').textContent = '₹' + (tot.tax || 0).toFixed(2);
+      document.getElementById('totGrand').textContent = '₹' + (tot.total || 0).toFixed(2);
     }
 
     // Export quote to printable HTML

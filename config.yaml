@@ -1,8 +1,13 @@
 # JobTalk configuration
-business_name: "Dave's Plumbing"
-tax_rate: 0.08
+business_name: "Dave's Plumbing & Electrical"
+tax_rate: 0.0           # Default 0% (opt-in: set to 0.18 for 18% GST)
+gst_split: false        # set true to show CGST + SGST as two equal halves
+gstin: ""               # your GSTIN, e.g. "22AAAAA0000A1Z5" — printed on quote if set
 rates_path: "examples/rates.json"
 model: "qwen2.5:1.5b"
 host: "127.0.0.1"
 port: 5000
 upload_max_size_mb: 25
+currency_code: "INR"
+currency_symbol: "₹"
+whisper_language: "en"  # "en" for base.en; set "hi" or "" with a multilingual model

@@ -1,0 +1,45 @@
+{
+  "id": "electrical_04",
+  "trade": "electrical",
+  "transcript": "Finished the distribution box work at Rajesh Gupta's flat 302, Palm Heights. Changed 4 old tripping breakers, replaced with four 16-amp Havells MCBs at 150 each. Also ran 15 meters of 2.5 sq mm copper wiring for 600 rupees. Labour was teen ghante ka kaam. Extra socket board lagaya for 250.",
+  "rates": {
+    "labor_hourly": 450,
+    "items": {
+      "mcb": 150,
+      "copper wiring": 600,
+      "socket board": 250
+    }
+  },
+  "expected": {
+    "customer": "Rajesh Gupta",
+    "address": "Flat 302, Palm Heights",
+    "job_summary": "Replaced MCBs and ran wiring",
+    "notes": "Changed tripping breakers and added socket board.",
+    "items": [
+      {
+        "description": "16-amp Havells MCB",
+        "kind": "material",
+        "qty": 4.0,
+        "unit_price": 150.0
+      },
+      {
+        "description": "2.5 sq mm copper wiring",
+        "kind": "material",
+        "qty": 15.0,
+        "unit_price": 600.0
+      },
+      {
+        "description": "Labor",
+        "kind": "labor",
+        "qty": 3.0,
+        "unit_price": 450.0
+      },
+      {
+        "description": "Extra socket board",
+        "kind": "material",
+        "qty": 1.0,
+        "unit_price": 250.0
+      }
+    ]
+  }
+}

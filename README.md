@@ -44,9 +44,13 @@ python run.py --lan    # binds 0.0.0.0 — prints your LAN IP
 
 - **SSE Streaming** — transcript appears immediately after Whisper; line items arrive one by one.
 - **Editable table** — change description, kind, qty, price inline. **"+ Add missing line"** for items the model missed.
+- **Indian Rupee (INR) & GST** — defaults to INR (₹) with Indian numbering format (`₹1,23,456.00`), optional GST at 18% (with optional CGST/SGST 50/50 split), and GSTIN support. Tax defaults to 0% — set `tax_rate: 0.18` in `config.yaml` to enable.
 - **Python-only math** — all totals and tax computed server-side via `/api/recalculate`.
+- **Round-off line** — totals are rounded to the nearest rupee; the paise difference appears as a round-off line (e.g. `–₹0.40`).
 - **Unpriced guard** — highlighted rows block export until priced or explicitly accepted.
 - **Fully offline** — no CDN fonts, no analytics, no external network calls.
+
+> **Note:** Exported documents are estimates/quotes only. They are **not** GST tax invoices under the Goods and Services Tax Act.
 
 ### Phone browser note
 

@@ -1,7 +1,9 @@
 // JobTalk Frontend Application Logic
 let items = [];
 let unpricedCount = 0;
-let taxRate = 0.08;
+let taxRate = 0.18;
+let currencySymbol = '₹';
+let gstSplit = false;
 let mediaRecorder = null;
 let audioChunks = [];
 let recordStartTime = null;
@@ -41,6 +43,16 @@ async function checkHealth() {
       taxRate = data.tax;
       const taxLbl = document.getElementById('taxRateDisplay');
       if (taxLbl) taxLbl.textContent = Math.round(taxRate * 100) + '%';
+    }
+    if (data.currency_symbol) {
+      currencySymbol = data.currency_symbol;
+    }
+    if (typeof data.gst_split === 'boolean') {
+      gstSplit = data.gst_split;
+    }
+    if (data.tax_label) {
+      const lbl = document.getElementById('taxLabelDisplay');
+      if (lbl) lbl.textContent = data.tax_label;
     }
   } catch (e) {
     const badge = document.getElementById('statusBadge');
@@ -220,8 +232,15 @@ async function handleSseStream(response) {
           if (data.job.address) document.getElementById('custAddr').value = data.job.address;
           if (data.job.job_summary) document.getElementById('jobSummary').value = data.job.job_summary;
           if (data.job.notes) document.getElementById('jobNotes').value = data.job.notes;
+          if (data.job.items && data.job.items.length > 0) {
+            items = data.job.items;
+          }
+        }
+        if (data.missing_items_reminder !== undefined) {
+          missingReminderText = data.missing_items_reminder;
         }
         hideProgress();
+        renderTable();
         triggerRecalc();
       } else if (eventType === 'error') {
         const data = JSON.parse(eventData);
@@ -233,6 +252,38 @@ async function handleSseStream(response) {
   hideProgress();
 }
 
+let missingReminderText = null;
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function updateMissingItemsAlert() {
+  const alertEl = document.getElementById('missingItemsAlert');
+  const textEl = document.getElementById('missingItemsText');
+  if (!alertEl || !textEl) return;
+  if (missingReminderText) {
+    alertEl.style.display = 'flex';
+    textEl.textContent = missingReminderText;
+  } else {
+    alertEl.style.display = 'none';
+    textEl.textContent = '';
+  }
+}
+
+function restoreItem(idx) {
+  if (items[idx]) {
+    items[idx].dropped_reason = null;
+    renderTable();
+    triggerRecalc();
+  }
+}
+
 // Render line items table
 function renderTable() {
   const tbody = document.getElementById('itemsBody');
@@ -240,7 +291,31 @@ function renderTable() {
   tbody.innerHTML = '';
   unpricedCount = 0;
 
+  const droppedList = document.getElementById('droppedItemsList');
+  const droppedSec = document.getElementById('droppedItemsSection');
+  if (droppedList) droppedList.innerHTML = '';
+  let droppedCount = 0;
+
   items.forEach((it, idx) => {
+    if (it.dropped_reason) {
+      droppedCount++;
+      if (droppedList) {
+        const dropRow = document.createElement('div');
+        dropRow.className = 'dropped-item-row';
+        const priceStr = it.unit_price ? ' @ ' + (it.formatted_unit_price || it.unit_price) : '';
+        dropRow.innerHTML = `
+          <span>
+            <strong>${escapeHtml(it.description)}</strong>
+            <span style="font-size:0.75rem; color:#fde68a; margin-left:6px;">(${escapeHtml(it.dropped_reason)})</span>
+            <span style="font-size:0.8rem; color:var(--text-muted); margin-left:8px;">Qty: ${it.qty || 1}${priceStr}</span>
+          </span>
+          <button type="button" class="btn btn-secondary" style="padding:2px 8px; font-size:0.75rem;" onclick="restoreItem(${idx})">Restore</button>
+        `;
+        droppedList.appendChild(dropRow);
+      }
+      return;
+    }
+
     const isUnpriced = (it.unit_price === null || it.unit_price === undefined || it.unit_price === '');
     if (isUnpriced) unpricedCount++;
 
@@ -262,10 +337,10 @@ function renderTable() {
     }
     tr.appendChild(tdDesc);
 
-    // Kind (Labor / Material)
+    // Kind (Labour / Material)
     const tdKind = document.createElement('td');
     const kindSelect = document.createElement('select');
-    kindSelect.innerHTML = '<option value="labor">Labor</option><option value="material">Material</option>';
+    kindSelect.innerHTML = '<option value="labor">Labour</option><option value="material">Material</option>';
     kindSelect.value = (it.kind === 'labor') ? 'labor' : 'material';
     kindSelect.onchange = (e) => { items[idx].kind = e.target.value; triggerRecalc(); };
     tdKind.appendChild(kindSelect);
@@ -281,7 +356,7 @@ function renderTable() {
     tdQty.appendChild(qtyInput);
     tr.appendChild(tdQty);
 
-    // Unit Price
+    // Unit Price (Rate)
     const tdPrice = document.createElement('td');
     const priceInput = document.createElement('input');
     priceInput.type = 'number';
@@ -291,16 +366,30 @@ function renderTable() {
     priceInput.oninput = (e) => {
       const val = e.target.value.trim();
       items[idx].unit_price = val === '' ? null : (parseFloat(val) || 0);
+      items[idx].price_flag = null;
       triggerRecalc();
     };
     tdPrice.appendChild(priceInput);
+    if (it.price_flag && !isUnpriced) {
+      const pBadge = document.createElement('span');
+      pBadge.className = 'badge-warn';
+      pBadge.textContent = 'price not found in recording, confirm';
+      pBadge.title = 'Click to confirm price';
+      pBadge.style.cursor = 'pointer';
+      pBadge.style.display = 'block';
+      pBadge.onclick = () => {
+        items[idx].price_flag = null;
+        renderTable();
+      };
+      tdPrice.appendChild(pBadge);
+    }
     tr.appendChild(tdPrice);
 
-    // Line Total
+    // Line Total (Amount) — display pre-formatted string from backend
     const tdTotal = document.createElement('td');
     tdTotal.style.textAlign = 'right';
     tdTotal.style.fontWeight = '500';
-    tdTotal.textContent = it.total !== null && it.total !== undefined ? ('$' + it.total.toFixed(2)) : (isUnpriced ? '?' : '$0.00');
+    tdTotal.textContent = it.formatted_total || (isUnpriced ? '?' : (currencySymbol + '0.00'));
     tr.appendChild(tdTotal);
 
     // Delete button
@@ -318,6 +407,10 @@ function renderTable() {
     tbody.appendChild(tr);
   });
 
+  if (droppedSec) {
+    droppedSec.style.display = droppedCount > 0 ? 'block' : 'none';
+  }
+
   // Update unpriced warning and export button
   const alertBox = document.getElementById('unpricedAlert');
   if (alertBox) {
@@ -329,6 +422,7 @@ function renderTable() {
     }
   }
   updateExportState();
+  updateMissingItemsAlert();
 }
 
 function addEmptyRow() {
@@ -337,7 +431,8 @@ function addEmptyRow() {
     kind: 'material',
     qty: 1.0,
     unit_price: null,
-    total: null
+    total: null,
+    formatted_total: '?'
   });
   renderTable();
   const inputs = document.querySelectorAll('#itemsBody tr:last-child input');
@@ -349,8 +444,9 @@ function updateExportState() {
   if (!chk) return;
   const allowUnpriced = chk.checked;
   const exportBtn = document.getElementById('exportBtn');
+  const hasUnconfirmed = items.some(it => !it.dropped_reason && it.price_flag);
   if (exportBtn) {
-    if (unpricedCount > 0 && !allowUnpriced) {
+    if ((unpricedCount > 0 || hasUnconfirmed) && !allowUnpriced) {
       exportBtn.style.opacity = '0.5';
     } else {
       exportBtn.style.opacity = '1.0';
@@ -369,16 +465,28 @@ function triggerRecalc() {
         body: JSON.stringify({
           items: items,
           rates: rates,
-          tax_rate: taxRate
+          tax_rate: taxRate,
+          gst_split: gstSplit,
+          currency_symbol: currencySymbol,
+          transcript: document.getElementById('transcriptText')?.value || '',
+          address: document.getElementById('custAddr')?.value || ''
         })
       });
       if (!res.ok) return;
       const data = await res.json();
+      if (data.missing_items_reminder !== undefined) {
+        missingReminderText = data.missing_items_reminder;
+        updateMissingItemsAlert();
+      }
       if (data.items) {
         data.items.forEach((it, idx) => {
           if (items[idx]) {
             items[idx].total = it.total;
             items[idx].unit_price = it.unit_price;
+            items[idx].price_flag = it.price_flag;
+            items[idx].dropped_reason = it.dropped_reason;
+            items[idx].formatted_total = it.formatted_total;
+            items[idx].formatted_unit_price = it.formatted_unit_price;
           }
         });
         updateTotalsDisplay(data.totals);
@@ -403,7 +511,7 @@ function updateTableTotalsOnly() {
 
     const totalCell = tr.children[4];
     if (totalCell) {
-      totalCell.textContent = it.total !== null && it.total !== undefined ? ('$' + it.total.toFixed(2)) : (isUnpriced ? '?' : '$0.00');
+      totalCell.textContent = it.formatted_total || (isUnpriced ? '?' : (currencySymbol + '0.00'));
     }
   });
   const alertBox = document.getElementById('unpricedAlert');
@@ -420,18 +528,60 @@ function updateTableTotalsOnly() {
 
 function updateTotalsDisplay(tot) {
   if (!tot) return;
-  document.getElementById('totLabor').textContent = '$' + (tot.labor || 0).toFixed(2);
-  document.getElementById('totMaterials').textContent = '$' + (tot.materials || 0).toFixed(2);
-  document.getElementById('totSubtotal').textContent = '$' + (tot.subtotal || 0).toFixed(2);
-  document.getElementById('totTax').textContent = '$' + (tot.tax || 0).toFixed(2);
-  document.getElementById('totGrand').textContent = '$' + (tot.total || 0).toFixed(2);
+  // All formatted strings are returned directly from Python backend
+  if (tot.formatted_labor) document.getElementById('totLabor').textContent = tot.formatted_labor;
+  if (tot.formatted_materials) document.getElementById('totMaterials').textContent = tot.formatted_materials;
+  if (tot.formatted_subtotal) document.getElementById('totSubtotal').textContent = tot.formatted_subtotal;
+  if (tot.formatted_tax) document.getElementById('totTax').textContent = tot.formatted_tax;
+  if (tot.formatted_total) document.getElementById('totGrand').textContent = tot.formatted_total;
+
+  const cgstRow = document.getElementById('cgstRow');
+  const sgstRow = document.getElementById('sgstRow');
+  const singleTaxRow = document.getElementById('singleTaxRow');
+
+  if (gstSplit && tot.formatted_cgst && tot.formatted_sgst) {
+    if (singleTaxRow) singleTaxRow.style.display = 'none';
+    if (cgstRow) {
+      cgstRow.style.display = 'flex';
+      document.getElementById('totCgst').textContent = tot.formatted_cgst;
+      document.getElementById('cgstRateDisplay').textContent = (taxRate * 50).toFixed(1).replace('.0', '') + '%';
+    }
+    if (sgstRow) {
+      sgstRow.style.display = 'flex';
+      document.getElementById('totSgst').textContent = tot.formatted_sgst;
+      document.getElementById('sgstRateDisplay').textContent = (taxRate * 50).toFixed(1).replace('.0', '') + '%';
+    }
+  } else {
+    if (singleTaxRow) singleTaxRow.style.display = 'flex';
+    if (cgstRow) cgstRow.style.display = 'none';
+    if (sgstRow) sgstRow.style.display = 'none';
+  }
+
+  // Show round-off row only when there is a non-zero round_off
+  const roundOffRow = document.getElementById('roundOffRow');
+  if (roundOffRow) {
+    if (tot.round_off && tot.formatted_round_off) {
+      roundOffRow.style.display = 'flex';
+      const el = document.getElementById('totRoundOff');
+      if (el) el.textContent = tot.formatted_round_off;
+    } else {
+      roundOffRow.style.display = 'none';
+    }
+  }
 }
 
 // Export quote to printable HTML
 async function exportQuote() {
   const allowUnpriced = document.getElementById('allowUnpricedCheck').checked;
+  const hasUnconfirmed = items.some(it => it.price_flag);
+
   if (unpricedCount > 0 && !allowUnpriced) {
     alert('Cannot export: ' + unpricedCount + ' item(s) have no price set. Please enter prices or check "Accept unpriced items on quote" to proceed.');
+    return;
+  }
+
+  if (hasUnconfirmed && !allowUnpriced) {
+    alert('Cannot export: One or more line items have prices not found in the recording. Please confirm or edit the prices, or check "Accept unpriced items on quote" to proceed.');
     return;
   }
 
@@ -443,6 +593,8 @@ async function exportQuote() {
     items: items,
     rates: rates,
     tax_rate: taxRate,
+    gst_split: gstSplit,
+    currency_symbol: currencySymbol,
     allow_unpriced: allowUnpriced
   };
 

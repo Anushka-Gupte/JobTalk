@@ -16,20 +16,32 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from jobtalk.config import Settings, load_rates
-from jobtalk.extract import stream_extract_job, warmup_model
+from jobtalk.extract import (
+    _extract_largest_json,
+    _post_process_job,
+    get_missing_items_reminder,
+    stream_extract_job,
+    warmup_model,
+)
 from jobtalk.models import Job, LineItem
+from jobtalk.money import format_inr
 from jobtalk.pricing import apply_rates, compute_totals
 from jobtalk.render import render_quote
 from jobtalk.transcribe import transcribe
 
 DEFAULT_CONFIG: dict[str, Any] = {
-    "business_name": "Dave's Plumbing",
-    "tax_rate": 0.08,
+    "business_name": "Dave's Plumbing & Electrical",
+    "tax_rate": 0.0,
+    "gst_split": False,
+    "gstin": "",
+    "currency_code": "INR",
+    "currency_symbol": "₹",
     "rates_path": "examples/rates.json",
     "model": "qwen2.5:1.5b",
     "host": "127.0.0.1",
     "port": 5000,
     "upload_max_size_mb": 25,
+    "whisper_language": "en",
 }
 
 
@@ -61,7 +73,16 @@ def create_app(
     cfg = load_app_config(config_path, config_overrides)
     rates_file = cfg.get("rates_path")
     app_rates = load_rates(rates_file) if rates_file else {}
-    settings = Settings(llm_model=str(cfg.get("model", "qwen2.5:1.5b")))
+    settings = Settings(
+        llm_model=str(cfg.get("model", "qwen2.5:1.5b")),
+        whisper_language=str(cfg.get("whisper_language", "en")),
+        currency_code=str(cfg.get("currency_code", "INR")),
+        currency_symbol=str(cfg.get("currency_symbol", "₹")),
+        gst_rate=float(cfg.get("tax_rate", 0.18)),
+        gst_split=bool(cfg.get("gst_split", False)),
+        gstin=str(cfg.get("gstin", "")),
+    )
+    sym = settings.currency_symbol
 
     extract_fn = stream_extract_fn or stream_extract_job
     audio_transcribe_fn = transcribe_fn or transcribe
@@ -104,8 +125,14 @@ def create_app(
             "model_ready": state["model_ready"],
             "model": settings.llm_model,
             "whisper_model": settings.whisper_model,
+            "whisper_language": settings.whisper_language,
             "business": cfg.get("business_name"),
-            "tax": float(cfg.get("tax_rate", 0.08)),
+            "tax": float(cfg.get("tax_rate", 0.0)),
+            "tax_label": "GST",
+            "gst_split": bool(cfg.get("gst_split", False)),
+            "gstin": str(cfg.get("gstin", "")),
+            "currency_code": settings.currency_code,
+            "currency_symbol": settings.currency_symbol,
             "error": state["model_warmup_error"],
         }
 
@@ -113,7 +140,11 @@ def create_app(
     async def recalculate(payload: dict[str, Any]) -> dict[str, Any]:
         raw_items = payload.get("items", [])
         custom_rates = payload.get("rates") or app_rates
-        tax_rate = float(payload.get("tax_rate", cfg.get("tax_rate", 0.08)))
+        tax_rate = float(payload.get("tax_rate", cfg.get("tax_rate", 0.0)))
+        gst_split = bool(payload.get("gst_split", cfg.get("gst_split", False)))
+        curr_sym = str(payload.get("currency_symbol", sym))
+        transcript_text = str(payload.get("transcript", ""))
+        cust_addr = str(payload.get("address", ""))
 
         items: list[LineItem] = []
         for it in raw_items:
@@ -123,17 +154,26 @@ def create_app(
                 kind="labor" if str(it.get("kind", "")).lower() == "labor" else "material",
                 qty=float(it.get("qty") or 1.0),
                 unit_price=float(up) if up is not None and up != "" else None,
+                price_flag=it.get("price_flag"),
+                dropped_reason=it.get("dropped_reason"),
             ))
 
         job = Job(items=items)
         job = apply_rates(job, custom_rates)
-        totals = compute_totals(job, tax_rate)
+        totals = compute_totals(job, tax_rate, gst_split=gst_split)
 
         labor_tot = round(
-            sum(it.total for it in job.items if it.kind == "labor" and it.total is not None), 2
+            sum(it.total for it in job.items if not it.dropped_reason and it.kind == "labor" and it.total is not None), 2
         )
         mat_tot = round(
-            sum(it.total for it in job.items if it.kind == "material" and it.total is not None), 2
+            sum(it.total for it in job.items if not it.dropped_reason and it.kind == "material" and it.total is not None), 2
+        )
+
+        active_count = len([it for it in job.items if not it.dropped_reason])
+        missing_reminder = (
+            get_missing_items_reminder(transcript_text, active_count, cust_addr)
+            if transcript_text
+            else None
         )
 
         items_out = [
@@ -143,12 +183,17 @@ def create_app(
                 "qty": it.qty,
                 "unit_price": it.unit_price,
                 "total": it.total,
+                "price_flag": it.price_flag,
+                "dropped_reason": it.dropped_reason,
+                "formatted_unit_price": format_inr(it.unit_price, curr_sym) if it.unit_price is not None else "",
+                "formatted_total": format_inr(it.total, curr_sym) if it.total is not None else "?",
             }
             for it in job.items
         ]
 
         return {
             "items": items_out,
+            "missing_items_reminder": missing_reminder,
             "totals": {
                 "labor": labor_tot,
                 "materials": mat_tot,
@@ -156,6 +201,17 @@ def create_app(
                 "tax": totals.tax,
                 "total": totals.total,
                 "unpriced": totals.unpriced,
+                "cgst": totals.cgst,
+                "sgst": totals.sgst,
+                "round_off": totals.round_off,
+                "formatted_labor": format_inr(labor_tot, curr_sym),
+                "formatted_materials": format_inr(mat_tot, curr_sym),
+                "formatted_subtotal": format_inr(totals.subtotal, curr_sym),
+                "formatted_tax": format_inr(totals.tax, curr_sym),
+                "formatted_total": format_inr(totals.total, curr_sym),
+                "formatted_cgst": format_inr(totals.cgst, curr_sym) if gst_split else "",
+                "formatted_sgst": format_inr(totals.sgst, curr_sym) if gst_split else "",
+                "formatted_round_off": format_inr(totals.round_off, curr_sym) if totals.round_off else "",
             },
         }
 
@@ -163,12 +219,18 @@ def create_app(
     async def export_quote(payload: dict[str, Any]) -> HTMLResponse:
         raw_items = payload.get("items", [])
         custom_rates = payload.get("rates") or app_rates
-        tax_rate = float(payload.get("tax_rate", cfg.get("tax_rate", 0.08)))
+        tax_rate = float(payload.get("tax_rate", cfg.get("tax_rate", 0.0)))
         allow_unpriced = bool(payload.get("allow_unpriced", False))
         business = str(payload.get("business", cfg.get("business_name", "Your Business")))
+        gstin_val = str(payload.get("gstin", cfg.get("gstin", "")))
+        gst_split_val = bool(payload.get("gst_split", cfg.get("gst_split", False)))
+        curr_sym = str(payload.get("currency_symbol", sym))
 
         items: list[LineItem] = []
         for it in raw_items:
+            # Dropped items must not be exported unless restored
+            if it.get("dropped_reason"):
+                continue
             up = it.get("unit_price")
             items.append(LineItem(
                 description=str(it.get("description", "")),
@@ -185,7 +247,7 @@ def create_app(
             items=items,
         )
         job = apply_rates(job, custom_rates)
-        totals = compute_totals(job, tax_rate)
+        totals = compute_totals(job, tax_rate, gst_split=gst_split_val)
 
         if totals.unpriced > 0 and not allow_unpriced:
             raise HTTPException(
@@ -196,8 +258,28 @@ def create_app(
                 ),
             )
 
+        has_unconfirmed = any(
+            bool(it.get("price_flag"))
+            for it in raw_items
+            if not it.get("dropped_reason")
+        )
+        if has_unconfirmed and not allow_unpriced:
+            raise HTTPException(
+                status_code=400,
+                detail="Line items with prices not found in recording must be confirmed before export.",
+            )
+
         quote_no = date.today().strftime("%y%m%d") + "-1"
-        rendered_html = render_quote(job, totals, business, tax_rate, quote_no)
+        rendered_html = render_quote(
+            job,
+            totals,
+            business,
+            tax_rate,
+            quote_no,
+            currency_symbol=curr_sym,
+            gstin=gstin_val,
+            gst_split=gst_split_val,
+        )
         return HTMLResponse(content=rendered_html, status_code=200)
 
     @app.post("/api/extract")
@@ -295,6 +377,9 @@ def create_app(
                             "kind": it.kind,
                             "qty": it.qty,
                             "unit_price": it.unit_price,
+                            "price_flag": it.price_flag,
+                            "formatted_unit_price": format_inr(it.unit_price, sym) if it.unit_price is not None else "",
+                            "formatted_total": format_inr(it.total, sym) if it.total is not None else "?",
                         }
                         yield f"event: item\ndata: {json.dumps({'item': item_dict})}\n\n"
                         await asyncio.sleep(0)
@@ -302,29 +387,42 @@ def create_app(
                         full_json_str = str(payload)
 
                 # 3. Emit done event
-                job_data = json.loads(full_json_str) if full_json_str else {}
+                job_data = _extract_largest_json(full_json_str) if full_json_str else None
+                if not job_data:
+                    err_json = json.dumps({"error": "Couldn't read that recording, try again"})
+                    yield f"event: error\ndata: {err_json}\n\n"
+                    return
+
                 job = Job.from_dict(job_data)
+                job = _post_process_job(job, transcript, user_rates)
+
                 job = apply_rates(job, user_rates)
-                tax_rate = float(cfg.get("tax_rate", 0.08))
-                totals = compute_totals(job, tax_rate)
+                tax_rate = float(cfg.get("tax_rate", 0.0))
+                gst_split = bool(cfg.get("gst_split", False))
+                totals = compute_totals(job, tax_rate, gst_split=gst_split)
+
+                active_count = len([it for it in job.items if not it.dropped_reason])
+                missing_reminder = get_missing_items_reminder(transcript, active_count, job.address)
 
                 labor_tot = round(
-                    sum(it.total for it in job.items if it.kind == "labor" and it.total is not None),
+                    sum(it.total for it in job.items if not it.dropped_reason and it.kind == "labor" and it.total is not None),
                     2,
                 )
                 mat_tot = round(
                     sum(
-                        it.total for it in job.items if it.kind == "material" and it.total is not None
+                        it.total for it in job.items if not it.dropped_reason and it.kind == "material" and it.total is not None
                     ),
                     2,
                 )
 
                 done_payload = {
+                    "missing_items_reminder": missing_reminder,
                     "job": {
                         "customer": job.customer,
                         "address": job.address,
                         "job_summary": job.job_summary,
                         "notes": job.notes,
+                        "missing_items_reminder": missing_reminder,
                         "items": [
                             {
                                 "description": it.description,
@@ -332,6 +430,10 @@ def create_app(
                                 "qty": it.qty,
                                 "unit_price": it.unit_price,
                                 "total": it.total,
+                                "price_flag": it.price_flag,
+                                "dropped_reason": it.dropped_reason,
+                                "formatted_unit_price": format_inr(it.unit_price, sym) if it.unit_price is not None else "",
+                                "formatted_total": format_inr(it.total, sym) if it.total is not None else "?",
                             }
                             for it in job.items
                         ],
@@ -343,12 +445,26 @@ def create_app(
                         "tax": totals.tax,
                         "total": totals.total,
                         "unpriced": totals.unpriced,
+                        "cgst": totals.cgst,
+                        "sgst": totals.sgst,
+                        "round_off": totals.round_off,
+                        "formatted_labor": format_inr(labor_tot, sym),
+                        "formatted_materials": format_inr(mat_tot, sym),
+                        "formatted_subtotal": format_inr(totals.subtotal, sym),
+                        "formatted_tax": format_inr(totals.tax, sym),
+                        "formatted_total": format_inr(totals.total, sym),
+                        "formatted_cgst": format_inr(totals.cgst, sym) if gst_split else "",
+                        "formatted_sgst": format_inr(totals.sgst, sym) if gst_split else "",
+                        "formatted_round_off": format_inr(totals.round_off, sym) if totals.round_off else "",
                     },
                 }
                 yield f"event: done\ndata: {json.dumps(done_payload)}\n\n"
 
             except Exception as exc:  # noqa: BLE001
-                yield f"event: error\ndata: {json.dumps({'error': str(exc)})}\n\n"
+                err_msg = str(exc)
+                if "Ollama" not in err_msg:
+                    err_msg = "Couldn't read that recording, try again"
+                yield f"event: error\ndata: {json.dumps({'error': err_msg})}\n\n"
 
         return StreamingResponse(
             event_generator(),

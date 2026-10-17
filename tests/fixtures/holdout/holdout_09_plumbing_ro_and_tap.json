@@ -1,0 +1,45 @@
+{
+  "id": "holdout_09",
+  "trade": "plumbing",
+  "transcript": "Kitchen plumbing done for Ramesh Patel at B-12 Sector 15 Noida. Replaced kitchen sink mixer tap, two thousand four hundred rupees for the tap. Also installed one RO water purifier inlet angle valve for teen sau rupaye. Dedh ghanta laga labour mein, 1.5 hours. Teflon tape and washer pack used for 50 rupees.",
+  "rates": {
+    "labor_hourly": 400,
+    "items": {
+      "mixer tap": 2400,
+      "angle valve": 300,
+      "washer pack": 50
+    }
+  },
+  "expected": {
+    "customer": "Ramesh Patel",
+    "address": "B-12 Sector 15 Noida",
+    "job_summary": "Kitchen mixer tap and RO valve replacement",
+    "notes": "Tested RO inlet line for leaks.",
+    "items": [
+      {
+        "description": "Kitchen sink mixer tap",
+        "kind": "material",
+        "qty": 1.0,
+        "unit_price": 2400.0
+      },
+      {
+        "description": "RO purifier inlet angle valve",
+        "kind": "material",
+        "qty": 1.0,
+        "unit_price": 300.0
+      },
+      {
+        "description": "Labor",
+        "kind": "labor",
+        "qty": 1.5,
+        "unit_price": 400.0
+      },
+      {
+        "description": "Teflon tape and washer pack",
+        "kind": "material",
+        "qty": 1.0,
+        "unit_price": 50.0
+      }
+    ]
+  }
+}

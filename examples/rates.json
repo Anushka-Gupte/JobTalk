@@ -1,8 +1,21 @@
 {
-  "labor_hourly": 85,
+  "labor_hourly": 500,
   "items": {
-    "shutoff valve": 22,
-    "p-trap": 14,
-    "copper fitting": 6
+    "tap washer": 30,
+    "brass stopcock": 180,
+    "pvc pipe": 45,
+    "cpvc pipe": 80,
+    "p-trap": 120,
+    "angle valve": 150,
+    "cistern": 850,
+    "submersible pump": 6500,
+    "mcb": 120,
+    "elcb": 350,
+    "rccb": 650,
+    "switchboard": 280,
+    "copper wiring": 90,
+    "geyser": 6800,
+    "inverter battery": 9500,
+    "exhaust fan": 750
   }
 }

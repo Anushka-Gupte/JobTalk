@@ -1,0 +1,38 @@
+{
+  "id": "whisper_03",
+  "trade": "plumbing",
+  "transcript": "Customer Amit Verma, Flat 4B Mayur Vihar. Plumber labour tha २ ghante, char sau rupaye per hour. Ek naya P-trap lagaya ₹३५० ka, aur Teflon tape ₹50. Job summary: Kitchen sink P-trap repair.",
+  "rates": {
+    "labor_hourly": 400,
+    "items": {
+      "p-trap": 350,
+      "teflon tape": 50
+    }
+  },
+  "expected": {
+    "customer": "Amit Verma",
+    "address": "Flat 4B Mayur Vihar",
+    "job_summary": "Kitchen sink P-trap repair",
+    "notes": "",
+    "items": [
+      {
+        "description": "Labor",
+        "kind": "labor",
+        "qty": 2.0,
+        "unit_price": 400.0
+      },
+      {
+        "description": "P-trap",
+        "kind": "material",
+        "qty": 1.0,
+        "unit_price": 350.0
+      },
+      {
+        "description": "Teflon tape",
+        "kind": "material",
+        "qty": 1.0,
+        "unit_price": 50.0
+      }
+    ]
+  }
+}

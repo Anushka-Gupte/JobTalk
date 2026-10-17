@@ -1,0 +1,45 @@
+{
+  "id": "hvac_04",
+  "trade": "hvac",
+  "transcript": "Split AC repair and servicing done at Sunita Rao's, 104 Lakeview Enclave. Replaced one dual run capacitor 45 MFD, paanch sau rupaye. Topped up 400 grams of R-32 gas for twelve hundred rupees. Two hours of AC labour and jet pump cleaning. New copper flare nut for eighty rupees.",
+  "rates": {
+    "labor_hourly": 400,
+    "items": {
+      "run capacitor": 500,
+      "refrigerant gas": 1200,
+      "flare nut": 80
+    }
+  },
+  "expected": {
+    "customer": "Sunita Rao",
+    "address": "104 Lakeview Enclave",
+    "job_summary": "Split AC repair and gas top-up",
+    "notes": "Jet pump indoor and outdoor cleaning done.",
+    "items": [
+      {
+        "description": "Dual run capacitor 45 MFD",
+        "kind": "material",
+        "qty": 1.0,
+        "unit_price": 500.0
+      },
+      {
+        "description": "R-32 refrigerant gas top-up",
+        "kind": "material",
+        "qty": 1.0,
+        "unit_price": 1200.0
+      },
+      {
+        "description": "Labor",
+        "kind": "labor",
+        "qty": 2.0,
+        "unit_price": 400.0
+      },
+      {
+        "description": "Copper flare nut",
+        "kind": "material",
+        "qty": 1.0,
+        "unit_price": 80.0
+      }
+    ]
+  }
+}

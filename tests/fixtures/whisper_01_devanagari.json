@@ -1,0 +1,38 @@
+{
+  "id": "whisper_01",
+  "trade": "electrical",
+  "transcript": "Customer Rajesh Sharma, 15 Civil Lines. Do ghante labour lagaya, ₹५०० per hour. Ek naya ceiling fan lagaya ISI mark ₹१५००, aur do switches badle ₹१०० each. Job summary: Ceiling fan and switch replacement. Old fan disposed.",
+  "rates": {
+    "labor_hourly": 500,
+    "items": {
+      "ceiling fan": 1500,
+      "switches": 100
+    }
+  },
+  "expected": {
+    "customer": "Rajesh Sharma",
+    "address": "15 Civil Lines",
+    "job_summary": "Ceiling fan and switch replacement",
+    "notes": "Old fan disposed.",
+    "items": [
+      {
+        "description": "Labor",
+        "kind": "labor",
+        "qty": 2.0,
+        "unit_price": 500.0
+      },
+      {
+        "description": "Ceiling fan",
+        "kind": "material",
+        "qty": 1.0,
+        "unit_price": 1500.0
+      },
+      {
+        "description": "Switches",
+        "kind": "material",
+        "qty": 2.0,
+        "unit_price": 100.0
+      }
+    ]
+  }
+}

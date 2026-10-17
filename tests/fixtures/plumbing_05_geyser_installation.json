@@ -1,0 +1,44 @@
+{
+  "id": "plumbing_05",
+  "trade": "plumbing",
+  "transcript": "Arre Sharma ji ke yahan kaam kiya, 14 Nehru Colony. 25-litre instant geyser lagaya naya wala, six thousand five hundred rupees for the geyser. Labour was do ghante ka kaam, do ghante lage pure. Aur ek brass stopcock lagaya ISI mark wala teen sau rupaye ka, teen sau rupaye. Old geyser haul-away ka 200 rupees.",
+  "rates": {
+    "labor_hourly": 500,
+    "items": {
+      "brass stopcock": 300,
+      "geyser": 6500
+    }
+  },
+  "expected": {
+    "customer": "Sharma ji",
+    "address": "14 Nehru Colony",
+    "job_summary": "Installed 25-litre instant geyser",
+    "notes": "Old geyser hauled away.",
+    "items": [
+      {
+        "description": "25-litre instant geyser",
+        "kind": "material",
+        "qty": 1.0,
+        "unit_price": 6500.0
+      },
+      {
+        "description": "Labor",
+        "kind": "labor",
+        "qty": 2.0,
+        "unit_price": 500.0
+      },
+      {
+        "description": "Brass stopcock",
+        "kind": "material",
+        "qty": 1.0,
+        "unit_price": 300.0
+      },
+      {
+        "description": "Haul-away of old geyser",
+        "kind": "labor",
+        "qty": 1.0,
+        "unit_price": 200.0
+      }
+    ]
+  }
+}

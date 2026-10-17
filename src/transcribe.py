@@ -19,5 +19,11 @@ def transcribe(
     except ImportError as exc:
         raise RuntimeError("Audio support missing. Run: pip install 'jobtalk[audio]'") from exc
     model = WhisperModel(settings.whisper_model, compute_type="int8")
-    segments, _ = model.transcribe(str(audio_path), vad_filter=True, initial_prompt=prompt)
+    kwargs = {"vad_filter": True, "initial_prompt": prompt}
+    if settings.whisper_language and not settings.whisper_model.endswith(".en"):
+        kwargs["language"] = settings.whisper_language
+    elif settings.whisper_model.endswith(".en"):
+        kwargs["language"] = "en"
+    segments, _ = model.transcribe(str(audio_path), **kwargs)
     return " ".join(seg.text.strip() for seg in segments)
+

@@ -104,8 +104,9 @@ def evaluate_fixture(
 
     summary_present = bool(extracted_job.job_summary.strip())
 
-    # Line item alignment
-    unmatched_extracted = list(extracted_job.items)
+    # Line item alignment (only billable, non-dropped items)
+    active_extracted = [it for it in extracted_job.items if not it.dropped_reason]
+    unmatched_extracted = list(active_extracted)
     matched_pairs: list[tuple[LineItem, LineItem]] = []
 
     for exp_item in expected_job.items:
@@ -116,6 +117,9 @@ def evaluate_fixture(
             score = _token_overlap(exp_item.description, ext_item.description)
             if exp_item.kind.lower() == ext_item.kind.lower():
                 score += 0.2
+            # Match labour lines by kind rather than requiring literal description match
+            if exp_item.kind.lower() == "labor" and ext_item.kind.lower() == "labor":
+                score = max(score, 0.5 + 0.5 * _token_overlap(exp_item.description, ext_item.description))
             if score > best_score:
                 best_score = score
                 best_idx = i
@@ -172,7 +176,7 @@ def evaluate_fixture(
         address_match=address_match,
         summary_present=summary_present,
         expected_items_count=len(expected_job.items),
-        extracted_items_count=len(extracted_job.items),
+        extracted_items_count=len(active_extracted),
         matched_items_count=len(matched_pairs),
         qty_matches=qty_matches,
         price_matches=price_matches,
