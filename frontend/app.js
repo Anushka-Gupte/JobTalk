@@ -239,6 +239,9 @@ async function handleSseStream(response) {
         if (data.missing_items_reminder !== undefined) {
           missingReminderText = data.missing_items_reminder;
         }
+        if (data.unmatched_number_phrases !== undefined) {
+          renderTranscriptHighlights(data.unmatched_number_phrases);
+        }
         hideProgress();
         renderTable();
         triggerRecalc();
@@ -253,6 +256,32 @@ async function handleSseStream(response) {
 }
 
 let missingReminderText = null;
+let unmatchedPhrases = [];
+
+function renderTranscriptHighlights(unmatched) {
+  if (unmatched !== undefined) {
+    unmatchedPhrases = unmatched || [];
+  }
+  const box = document.getElementById('transcriptHighlightBox');
+  const content = document.getElementById('transcriptHighlightContent');
+  if (!box || !content) return;
+
+  if (!unmatchedPhrases || unmatchedPhrases.length === 0) {
+    box.style.display = 'none';
+    content.innerHTML = '';
+    return;
+  }
+
+  box.style.display = 'block';
+  content.innerHTML = '';
+
+  unmatchedPhrases.forEach(phrase => {
+    const pEl = document.createElement('div');
+    pEl.style.marginTop = '4px';
+    pEl.innerHTML = `<mark class="unmatched-phrase-highlight" title="Amount or quantity not found in any active row">${escapeHtml(phrase)}</mark>`;
+    content.appendChild(pEl);
+  });
+}
 
 function escapeHtml(str) {
   if (!str) return '';
@@ -477,6 +506,9 @@ function triggerRecalc() {
       if (data.missing_items_reminder !== undefined) {
         missingReminderText = data.missing_items_reminder;
         updateMissingItemsAlert();
+      }
+      if (data.unmatched_number_phrases !== undefined) {
+        renderTranscriptHighlights(data.unmatched_number_phrases);
       }
       if (data.items) {
         data.items.forEach((it, idx) => {

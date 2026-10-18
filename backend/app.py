@@ -19,6 +19,7 @@ from jobtalk.config import Settings, load_rates
 from jobtalk.extract import (
     _extract_largest_json,
     _post_process_job,
+    find_unmatched_number_phrases,
     get_missing_items_reminder,
     stream_extract_job,
     warmup_model,
@@ -175,6 +176,11 @@ def create_app(
             if transcript_text
             else None
         )
+        unmatched_phrases = (
+            find_unmatched_number_phrases(transcript_text, job.items, cust_addr)
+            if transcript_text
+            else []
+        )
 
         items_out = [
             {
@@ -194,6 +200,7 @@ def create_app(
         return {
             "items": items_out,
             "missing_items_reminder": missing_reminder,
+            "unmatched_number_phrases": unmatched_phrases,
             "totals": {
                 "labor": labor_tot,
                 "materials": mat_tot,
@@ -403,6 +410,7 @@ def create_app(
 
                 active_count = len([it for it in job.items if not it.dropped_reason])
                 missing_reminder = get_missing_items_reminder(transcript, active_count, job.address)
+                unmatched_phrases = find_unmatched_number_phrases(transcript, job.items, job.address)
 
                 labor_tot = round(
                     sum(it.total for it in job.items if not it.dropped_reason and it.kind == "labor" and it.total is not None),
@@ -417,12 +425,14 @@ def create_app(
 
                 done_payload = {
                     "missing_items_reminder": missing_reminder,
+                    "unmatched_number_phrases": unmatched_phrases,
                     "job": {
                         "customer": job.customer,
                         "address": job.address,
                         "job_summary": job.job_summary,
                         "notes": job.notes,
                         "missing_items_reminder": missing_reminder,
+                        "unmatched_number_phrases": unmatched_phrases,
                         "items": [
                             {
                                 "description": it.description,

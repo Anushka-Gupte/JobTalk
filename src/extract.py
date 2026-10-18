@@ -495,6 +495,104 @@ def get_missing_items_reminder(transcript: str, items_count: int, address: str =
     return None
 
 
+_DEVANAGARI_DIGITS_REVERSE = {v: k for k, v in _DEVANAGARI_DIGITS.items()}
+
+_WORD_TO_NUM: dict[str, float] = {
+    "zero": 0.0, "one": 1.0, "two": 2.0, "three": 3.0, "four": 4.0, "five": 5.0,
+    "six": 6.0, "seven": 7.0, "eight": 8.0, "nine": 9.0, "ten": 10.0,
+    "eleven": 11.0, "twelve": 12.0, "thirteen": 13.0, "fourteen": 14.0, "fifteen": 15.0,
+    "sixteen": 16.0, "seventeen": 17.0, "eighteen": 18.0, "nineteen": 19.0, "twenty": 20.0,
+    "thirty": 30.0, "forty": 40.0, "fifty": 50.0, "sixty": 60.0, "seventy": 70.0,
+    "eighty": 80.0, "ninety": 90.0, "hundred": 100.0, "thousand": 1000.0,
+    "half": 0.5, "quarter": 0.25, "dozen": 12.0,
+    "ek": 1.0, "do": 2.0, "teen": 3.0, "chaar": 4.0, "char": 4.0, "paanch": 5.0, "panch": 5.0,
+    "chhe": 6.0, "chhah": 6.0, "saat": 7.0, "aath": 8.0, "nau": 9.0, "das": 10.0,
+    "gyarah": 11.0, "barah": 12.0, "dedh": 1.5, "dhai": 2.5, "sau": 100.0,
+    "hazaar": 1000.0, "hazar": 1000.0, "pachas": 50.0, "assi": 80.0, "pachhis": 25.0, "chaubis": 24.0,
+}
+
+
+def _extract_numbers_from_phrase(phrase: str) -> set[float]:
+    nums: set[float] = set()
+    for m in re.finditer(r"\b\d+(?:,\d+)*(?:\.\d+)?\b", phrase):
+        clean = m.group(0).replace(",", "")
+        try:
+            nums.add(round(float(clean), 2))
+        except ValueError:
+            pass
+    for m in re.finditer(r"[०-९]+", phrase):
+        val_str = "".join(str(_DEVANAGARI_DIGITS_REVERSE.get(c, c)) for c in m.group(0))
+        try:
+            nums.add(round(float(val_str), 2))
+        except ValueError:
+            pass
+    words = re.findall(r"\b[a-zA-Z]+\b", phrase.lower())
+    for w in words:
+        if w in _WORD_TO_NUM:
+            nums.add(round(_WORD_TO_NUM[w], 2))
+    return nums
+
+
+def _collect_row_numbers(items: list[LineItem]) -> set[float]:
+    nums: set[float] = set()
+    for it in items:
+        if it.dropped_reason:
+            continue
+        if it.qty is not None:
+            nums.add(round(float(it.qty), 2))
+        if it.unit_price is not None:
+            nums.add(round(float(it.unit_price), 2))
+        if it.total is not None:
+            nums.add(round(float(it.total), 2))
+        for m in re.finditer(r"\b\d+(?:\.\d+)?\b", it.description):
+            try:
+                nums.add(round(float(m.group(0)), 2))
+            except ValueError:
+                pass
+    return nums
+
+
+def find_unmatched_number_phrases(
+    transcript: str,
+    items: list[LineItem],
+    address: str = "",
+) -> list[str]:
+    """Identify number-bearing phrases in transcript whose amounts/quantities are not in any active row."""
+    t = transcript.strip()
+    if not t:
+        return []
+
+    if address and address.strip():
+        t = re.sub(re.escape(address.strip()), " ", t, flags=re.IGNORECASE)
+
+    raw_chunks = re.split(r"[\.\!\?\;\n]+|,\s*(?=[a-zA-Z])", t)
+    chunks: list[str] = []
+    for rc in raw_chunks:
+        sub_chunks = re.split(r"\b(?:also|and then|plus)\b", rc, flags=re.IGNORECASE)
+        chunks.extend(sub_chunks)
+
+    row_nums = _collect_row_numbers(items)
+    unmatched: list[str] = []
+
+    for chunk in chunks:
+        c = chunk.strip()
+        if not c:
+            continue
+        if _ADDRESS_INDICATORS.search(c) and re.search(r"\b(?:at|on|over at|in|flat|house|near)\b", c, re.IGNORECASE):
+            continue
+        phrase_nums = _extract_numbers_from_phrase(c)
+        if not phrase_nums:
+            continue
+        matched = any(
+            any(abs(pn - rn) < 0.01 for rn in row_nums)
+            for pn in phrase_nums
+        )
+        if not matched:
+            unmatched.append(c)
+
+    return unmatched
+
+
 def _post_process_job(job: Job, transcript: str, rates: dict) -> Job:
     _clean_customer_and_address(job, transcript)
     _filter_old_removed_items(job)

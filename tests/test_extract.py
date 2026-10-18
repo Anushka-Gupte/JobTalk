@@ -162,6 +162,30 @@ def test_missing_items_reminder_deterministic():
     assert get_missing_items_reminder(t2, items_count=1, address="904 Sycamore Drive") is None
 
 
+def test_find_unmatched_number_phrases():
+    from jobtalk.extract import find_unmatched_number_phrases
+    from jobtalk.models import LineItem
+
+    transcript = (
+        "Replaced two 15-amp breakers for 300 rupees. "
+        "Ran fifty feet of aluminum wire. "
+        "Customer also asked about 3 outdoor flood lights."
+    )
+    items = [
+        LineItem(description="15-amp breaker", kind="material", qty=2.0, unit_price=150.0),
+        LineItem(description="aluminum wire", kind="material", qty=50.0, unit_price=10.0),
+    ]
+    unmatched = find_unmatched_number_phrases(transcript, items)
+    # The first two clauses match active row numbers (2, 300, 50).
+    # The third clause mentions 3 which does not appear in any active row.
+    assert len(unmatched) == 1
+    assert "3 outdoor flood lights" in unmatched[0]
+
+    # When all items are accounted for, no unmatched phrases remain
+    items.append(LineItem(description="outdoor flood lights", kind="material", qty=3.0, unit_price=500.0))
+    assert find_unmatched_number_phrases(transcript, items) == []
+
+
 def test_price_guard_flags_unsupported_prices():
     raw = json.dumps({
         "customer": "Anil",

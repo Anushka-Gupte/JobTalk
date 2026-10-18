@@ -81,6 +81,10 @@
           Appears immediately after Whisper transcribes. You can also edit text directly here and click "Re-Extract".
         </p>
         <textarea id="transcriptText" placeholder="Dictate audio above or type/paste transcript here..."></textarea>
+        <div id="transcriptHighlightBox" class="transcript-highlight-box">
+          <div class="transcript-highlight-label">Unmatched numbers/quantities in transcript:</div>
+          <div id="transcriptHighlightContent"></div>
+        </div>
       </div>
 
       <!-- Right Pane: Line Items & Totals -->
@@ -134,6 +138,9 @@
           <button type="button" class="btn btn-secondary" onclick="addEmptyRow()">
             + Add missing line
           </button>
+        </div>
+        <div class="transcript-check-hint" style="font-size:0.8rem;color:var(--text-muted);margin-top:6px;margin-bottom:8px;">
+          Check the transcript for anything missing.
         </div>
 
         <!-- Dropped items section (greyed out with restore button) -->
