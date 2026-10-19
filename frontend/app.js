@@ -39,16 +39,45 @@ async function checkHealth() {
       badge.className = 'status-badge status-loading';
       text.textContent = 'Warming up model...';
     }
-    if (typeof data.tax === 'number') {
-      taxRate = data.tax;
-      const taxLbl = document.getElementById('taxRateDisplay');
-      if (taxLbl) taxLbl.textContent = Math.round(taxRate * 100) + '%';
+    const savedBiz = localStorage.getItem('jobtalk_biz_name');
+    const bizInput = document.getElementById('bizName');
+    if (bizInput && !bizInput.value) {
+      if (savedBiz !== null) {
+        bizInput.value = savedBiz;
+      } else if (data.business && data.business !== "Dave's Plumbing & Electrical") {
+        bizInput.value = data.business;
+      } else {
+        bizInput.value = '';
+      }
     }
+
+    const savedTax = localStorage.getItem('jobtalk_tax_rate');
+    const gstSelect = document.getElementById('gstRateSelect');
+    if (savedTax !== null) {
+      taxRate = parseFloat(savedTax) || 0.0;
+    } else if (typeof data.tax === 'number') {
+      taxRate = data.tax;
+    }
+    if (gstSelect && (!gstSelect.value || gstSelect.value === "0")) {
+      gstSelect.value = String(taxRate);
+      if (!gstSelect.value) gstSelect.value = "0";
+    }
+
+    const savedSplit = localStorage.getItem('jobtalk_gst_split');
+    const splitChk = document.getElementById('gstSplitCheck');
+    if (savedSplit !== null) {
+      gstSplit = savedSplit === 'true';
+    } else if (typeof data.gst_split === 'boolean') {
+      gstSplit = data.gst_split;
+    }
+    if (splitChk) {
+      splitChk.checked = gstSplit;
+    }
+
+    const taxLbl = document.getElementById('taxRateDisplay');
+    if (taxLbl) taxLbl.textContent = Math.round(taxRate * 100) + '%';
     if (data.currency_symbol) {
       currencySymbol = data.currency_symbol;
-    }
-    if (typeof data.gst_split === 'boolean') {
-      gstSplit = data.gst_split;
     }
     if (data.tax_label) {
       const lbl = document.getElementById('taxLabelDisplay');
@@ -95,6 +124,11 @@ async function toggleRecord() {
     mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
     mediaRecorder.onstop = () => {
       const blob = new Blob(audioChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
+      if (blob.size === 0) {
+        alert('Recording was empty. Please try recording again.');
+        stream.getTracks().forEach(t => t.stop());
+        return;
+      }
       const file = new File([blob], 'recording.webm', { type: blob.type });
       const dataTransfer = new DataTransfer();
       dataTransfer.items.add(file);
@@ -105,7 +139,7 @@ async function toggleRecord() {
       document.getElementById('processBtn').disabled = false;
       stream.getTracks().forEach(t => t.stop());
     };
-    mediaRecorder.start();
+    mediaRecorder.start(250);
     btn.textContent = 'Stop Recording';
     btn.className = 'btn btn-danger';
     timer.style.display = 'inline';
@@ -620,6 +654,7 @@ async function exportQuote() {
   const payload = {
     customer: document.getElementById('custName').value.trim(),
     address: document.getElementById('custAddr').value.trim(),
+    business: document.getElementById('bizName')?.value.trim() || '',
     job_summary: document.getElementById('jobSummary').value.trim(),
     notes: document.getElementById('jobNotes').value.trim(),
     items: items,
@@ -648,4 +683,60 @@ async function exportQuote() {
   } catch (err) {
     alert('Export failed: ' + err.message);
   }
+}
+
+function onBizNameChange() {
+  const val = document.getElementById('bizName')?.value || '';
+  localStorage.setItem('jobtalk_biz_name', val);
+}
+
+function onGstChange() {
+  const sel = document.getElementById('gstRateSelect');
+  if (sel) {
+    taxRate = parseFloat(sel.value) || 0.0;
+    localStorage.setItem('jobtalk_tax_rate', String(taxRate));
+    const taxLbl = document.getElementById('taxRateDisplay');
+    if (taxLbl) taxLbl.textContent = Math.round(taxRate * 100) + '%';
+  }
+  const splitChk = document.getElementById('gstSplitCheck');
+  if (splitChk) {
+    gstSplit = splitChk.checked;
+    localStorage.setItem('jobtalk_gst_split', String(gstSplit));
+  }
+  triggerRecalc();
+}
+
+function shareOnWhatsApp() {
+  const biz = document.getElementById('bizName')?.value.trim() || '';
+  const cust = document.getElementById('custName')?.value.trim() || '';
+  const addr = document.getElementById('custAddr')?.value.trim() || '';
+  const summary = document.getElementById('jobSummary')?.value.trim() || '';
+  const grandTotal = document.getElementById('totGrand')?.textContent || (currencySymbol + '0.00');
+  const subtotal = document.getElementById('totSubtotal')?.textContent || (currencySymbol + '0.00');
+  const tax = document.getElementById('totTax')?.textContent || '';
+
+  let text = '';
+  if (biz) text += '*' + biz + '*\n';
+  text += 'Quote Estimate\n';
+  if (cust) text += 'Customer: ' + cust + '\n';
+  if (addr) text += 'Address: ' + addr + '\n';
+  if (summary) text += 'Job: ' + summary + '\n';
+
+  const activeItems = items.filter(it => !it.dropped_reason);
+  if (activeItems.length > 0) {
+    text += '\nItems:\n';
+    activeItems.forEach(it => {
+      const amt = it.formatted_total || (it.unit_price ? currencySymbol + (it.qty * it.unit_price).toFixed(2) : 'TBD');
+      text += '• ' + it.description + ' (x' + it.qty + '): ' + amt + '\n';
+    });
+  }
+
+  text += '\nSubtotal: ' + subtotal + '\n';
+  if (taxRate > 0) {
+    text += 'GST (' + Math.round(taxRate * 100) + '%): ' + tax + '\n';
+  }
+  text += '*Grand Total: ' + grandTotal + '*\n';
+
+  const url = 'https://api.whatsapp.com/send?text=' + encodeURIComponent(text);
+  window.open(url, '_blank');
 }

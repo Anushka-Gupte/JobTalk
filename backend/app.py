@@ -31,7 +31,7 @@ from jobtalk.render import render_quote
 from jobtalk.transcribe import transcribe
 
 DEFAULT_CONFIG: dict[str, Any] = {
-    "business_name": "Dave's Plumbing & Electrical",
+    "business_name": "",
     "tax_rate": 0.0,
     "gst_split": False,
     "gstin": "",
@@ -228,7 +228,7 @@ def create_app(
         custom_rates = payload.get("rates") or app_rates
         tax_rate = float(payload.get("tax_rate", cfg.get("tax_rate", 0.0)))
         allow_unpriced = bool(payload.get("allow_unpriced", False))
-        business = str(payload.get("business", cfg.get("business_name", "Your Business")))
+        business = str(payload.get("business") if payload.get("business") is not None else cfg.get("business_name", "")).strip()
         gstin_val = str(payload.get("gstin", cfg.get("gstin", "")))
         gst_split_val = bool(payload.get("gst_split", cfg.get("gst_split", False)))
         curr_sym = str(payload.get("currency_symbol", sym))
@@ -326,6 +326,11 @@ def create_app(
 
             try:
                 transcript = audio_transcribe_fn(tmp_path, settings)
+            except Exception as exc:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Could not transcribe audio: {exc}",
+                ) from exc
             finally:
                 tmp_path.unlink(missing_ok=True)
 
@@ -362,6 +367,11 @@ def create_app(
 
             try:
                 transcript = audio_transcribe_fn(tmp_path, settings)
+            except Exception as exc:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Could not transcribe audio: {exc}",
+                ) from exc
             finally:
                 tmp_path.unlink(missing_ok=True)
 
@@ -370,6 +380,11 @@ def create_app(
                 # 1. Emit transcript event immediately
                 yield f"event: transcript\ndata: {json.dumps({'transcript': transcript})}\n\n"
                 await asyncio.sleep(0)
+
+                if not transcript.strip():
+                    err_json = json.dumps({"error": "No speech detected in recording, try again"})
+                    yield f"event: error\ndata: {err_json}\n\n"
+                    return
 
                 # 2. Stream line items
                 full_json_str = ""

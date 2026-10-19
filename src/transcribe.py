@@ -2,8 +2,30 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 from jobtalk.config import Settings
+
+
+def _patch_pyav() -> None:
+    """Patch PyAV av.open to ignore removed metadata_errors parameter in PyAV >= 14."""
+    try:
+        import av
+
+        orig_open = av.open
+        if not getattr(orig_open, "_jobtalk_patched", False):
+
+            def safe_open(*args: Any, **kwargs: Any) -> Any:
+                kwargs.pop("metadata_errors", None)
+                return orig_open(*args, **kwargs)
+
+            safe_open._jobtalk_patched = True  # type: ignore[attr-defined]
+            av.open = safe_open
+    except ImportError:
+        pass
+
+
+_patch_pyav()
 
 
 def transcribe(
@@ -11,6 +33,7 @@ def transcribe(
     settings: Settings | None = None,
     initial_prompt: str | None = None,
 ) -> str:
+    _patch_pyav()
     if settings is None:
         settings = Settings()
     prompt = initial_prompt if initial_prompt is not None else settings.whisper_initial_prompt

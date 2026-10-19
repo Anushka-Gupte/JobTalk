@@ -170,6 +170,28 @@ def test_api_export_succeeds_when_allow_unpriced_checked(client):
     assert "GST" in html
 
 
+def test_api_export_empty_business_renders_no_daves_plumbing(client):
+    payload = {
+        "customer": "John Doe",
+        "address": "123 Main St",
+        "job_summary": "Replaced valve",
+        "notes": "",
+        "items": [
+            {"description": "Labour", "kind": "labor", "qty": 1.0, "unit_price": 90.0},
+        ],
+        "business": "",
+        "tax_rate": 0.18,
+    }
+    resp = client.post("/api/export", json=payload)
+    assert resp.status_code == 200
+    html = resp.text
+    assert "Dave's Plumbing" not in html
+    assert "<h1>" not in html
+    assert "GST (18%)" in html
+    assert "Print / Save as PDF" in html
+    assert "Share on WhatsApp" in html
+
+
 def test_api_extract_streams_sse_from_json(client):
     resp = client.post("/api/extract", json={"transcript": "Repaired sink"})
     assert resp.status_code == 200
@@ -334,4 +356,62 @@ def test_api_recalculate_returns_missing_items_reminder(client):
     assert resp.status_code == 200
     data = resp.json()
     assert data["missing_items_reminder"] == "2 items may be missing, check the transcript"
+
+
+def test_api_extract_empty_transcript_returns_error_event():
+    from backend.app import create_app
+
+    app = create_app(
+        transcribe_fn=lambda path, s: "",
+        warmup=False,
+    )
+    with TestClient(app) as test_client:
+        files = {"audio": ("silent.wav", b"RIFFfakeaudio", "audio/wav")}
+        resp = test_client.post("/api/extract", files=files)
+        assert resp.status_code == 200
+        text = resp.text
+        assert "event: transcript" in text
+        assert "event: error" in text
+        assert "No speech detected in recording, try again" in text
+
+
+def test_api_extract_transcription_failure_returns_400():
+    from backend.app import create_app
+
+    def failing_transcribe(path, s):
+        raise RuntimeError("Corrupted audio file")
+
+    app = create_app(
+        transcribe_fn=failing_transcribe,
+        warmup=False,
+    )
+    with TestClient(app) as test_client:
+        files = {"audio": ("corrupt.wav", b"corrupted", "audio/wav")}
+        resp = test_client.post("/api/extract", files=files)
+        assert resp.status_code == 400
+        assert "Could not transcribe audio" in resp.json()["detail"]
+
+
+def test_pyav_patch_strips_metadata_errors():
+    import io
+    import wave
+
+    from jobtalk.transcribe import _patch_pyav
+
+    _patch_pyav()
+    try:
+        import av
+
+        buf = io.BytesIO()
+        with wave.open(buf, "wb") as w:
+            w.setnchannels(1)
+            w.setsampwidth(2)
+            w.setframerate(16000)
+            w.writeframes(b"\x00\x00" * 1600)
+        buf.seek(0)
+        container = av.open(buf, mode="r", metadata_errors="ignore")
+        assert container is not None
+        container.close()
+    except ImportError:
+        pass
 

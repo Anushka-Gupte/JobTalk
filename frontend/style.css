@@ -248,6 +248,14 @@ textarea, input[type="text"], input[type="number"], select {
   font-family: inherit;
 }
 
+.btn-whatsapp {
+  background: #16a34a;
+  color: #fff;
+}
+.btn-whatsapp:hover:not(:disabled) {
+  background: #15803d;
+}
+
 textarea:focus, input:focus, select:focus {
   outline: none;
   border-color: var(--primary);

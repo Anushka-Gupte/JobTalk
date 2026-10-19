@@ -46,19 +46,25 @@ def render_quote(
     )
 
     gstin_line = f'<p>GSTIN: {esc(gstin)}</p>' if gstin else ""
+    business_header = f"<h1>{esc(business)}</h1>" if business.strip() else ""
 
     if gst_split and (totals.cgst or totals.sgst):
         gst_rows = (
             f"CGST ({tax_rate / 2:.1%}) {fmt(totals.cgst)}<br>"
             f"SGST ({tax_rate / 2:.1%}) {fmt(totals.sgst)}<br>"
         )
-    else:
+        raw_gst_text = f"CGST ({tax_rate / 2:.1%}): {fmt(totals.cgst)}\\nSGST ({tax_rate / 2:.1%}): {fmt(totals.sgst)}\\n"
+    elif tax_rate > 0:
         gst_rows = f"GST ({tax_rate:.0%}) {fmt(totals.tax)}<br>"
+        raw_gst_text = f"GST ({tax_rate:.0%}): {fmt(totals.tax)}\\n"
+    else:
+        gst_rows = f"GST (0%) {fmt(0.0)}<br>"
+        raw_gst_text = ""
 
     round_off_line = f"Round-off {fmt(totals.round_off)}<br>" if totals.round_off else ""
 
     return _TEMPLATE.substitute(
-        business=esc(business),
+        business_header=business_header,
         quote_no=esc(quote_no),
         date=(on or date.today()).strftime("%d %b %Y"),
         customer=esc(job.customer),
@@ -72,4 +78,5 @@ def render_quote(
         gst_rows=gst_rows,
         round_off_line=round_off_line,
         total=fmt(totals.total),
+        raw_gst_text=raw_gst_text,
     )

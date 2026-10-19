@@ -93,6 +93,12 @@
           <span>Extracted Line Items &amp; Quote</span>
         </div>
 
+        <!-- Business Name input -->
+        <div style="margin-bottom:12px;">
+          <label style="font-size:0.75rem;color:var(--text-muted);">Business Name (optional, shown on quote header &amp; WhatsApp)</label>
+          <input type="text" id="bizName" placeholder="Your Business Name (leave empty for none)" oninput="onBizNameChange()">
+        </div>
+
         <!-- Metadata row -->
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
           <div>
@@ -156,6 +162,22 @@
 
         <!-- Totals summary -->
         <div class="totals-card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid var(--card-border);flex-wrap:wrap;gap:8px;">
+            <label for="gstRateSelect" style="font-size:0.85rem;color:var(--text-muted);font-weight:500;">GST Rate:</label>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <select id="gstRateSelect" style="padding:4px 8px;font-size:0.85rem;border-radius:4px;background:var(--input-bg);color:var(--text);border:1px solid var(--input-border);" onchange="onGstChange()">
+                <option value="0">0% (No GST)</option>
+                <option value="0.05">5% GST</option>
+                <option value="0.12">12% GST</option>
+                <option value="0.18">18% GST (Standard)</option>
+                <option value="0.28">28% GST</option>
+              </select>
+              <label class="checkbox-label" style="font-size:0.8rem;">
+                <input type="checkbox" id="gstSplitCheck" onchange="onGstChange()">
+                <span>Split CGST/SGST</span>
+              </label>
+            </div>
+          </div>
           <div class="totals-row">
             <span>Labour:</span>
             <span id="totLabor">₹0.00</span>
@@ -201,9 +223,14 @@
             <input type="checkbox" id="allowUnpricedCheck" onchange="updateExportState()">
             <span>Accept unpriced items on quote</span>
           </label>
-          <button type="button" id="exportBtn" class="btn btn-accent" onclick="exportQuote()">
-            Export Quote (HTML / Print)
-          </button>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <button type="button" id="whatsappBtn" class="btn btn-whatsapp" onclick="shareOnWhatsApp()">
+              💬 Share on WhatsApp
+            </button>
+            <button type="button" id="exportBtn" class="btn btn-accent" onclick="exportQuote()">
+              🖨️ Export (Print / Save as PDF)
+            </button>
+          </div>
         </div>
       </div>
     </div>

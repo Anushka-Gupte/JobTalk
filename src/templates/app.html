@@ -565,6 +565,11 @@
         mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
         mediaRecorder.onstop = () => {
           const blob = new Blob(audioChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
+          if (blob.size === 0) {
+            alert('Recording was empty. Please try recording again.');
+            stream.getTracks().forEach(t => t.stop());
+            return;
+          }
           const file = new File([blob], 'recording.webm', { type: blob.type });
           const dataTransfer = new DataTransfer();
           dataTransfer.items.add(file);
@@ -575,7 +580,7 @@
           document.getElementById('processBtn').disabled = false;
           stream.getTracks().forEach(t => t.stop());
         };
-        mediaRecorder.start();
+        mediaRecorder.start(250);
         btn.textContent = 'Stop Recording';
         btn.className = 'btn btn-danger';
         timer.style.display = 'inline';

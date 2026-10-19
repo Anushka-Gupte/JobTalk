@@ -1,5 +1,5 @@
 # JobTalk configuration
-business_name: "Dave's Plumbing & Electrical"
+business_name: ""
 tax_rate: 0.0           # Default 0% (opt-in: set to 0.18 for 18% GST)
 gst_split: false        # set true to show CGST + SGST as two equal halves
 gstin: ""               # your GSTIN, e.g. "22AAAAA0000A1Z5" — printed on quote if set
